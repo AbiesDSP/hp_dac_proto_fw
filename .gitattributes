@@ -1,0 +1,2 @@
+*.cysch filter=lfs diff=lfs merge=lfs -text
+*.cyprj filter=cyprjfilter

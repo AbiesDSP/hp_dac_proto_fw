@@ -1,0 +1,32 @@
+# PSoC Ignored Files
+# Ignore all but TopDesign, project file, design wide resources, main.c, and cyapicallbacks.h
+# The main cywrk file should be added, but not ".cywrk.user". This needs testing
+*.cywrk*
+*.cydsn/*
+!*.cywrk
+!*.cydsn/*.cyprj
+!*.cydsn/*.cydwr
+!*.cydsn/main.c
+!*.cydsn/cyapicallbacks.h
+!*.cydsn/TopDesign/
+!*.cydsn/TopDesign/*.cysch
+*.LOG
+*.cycdx
+*.cyfit
+*.rpt
+*.svd
+*.html
+# Ceedling test framework ignored files
+build
+ceedling
+vendor
+# VSCode Ignored files
+.vscode
+# Buckaroo
+.buckd
+buck-out
+.buckconfig.local
+.buckconfig.d
+buckaroo
+buckaroo_macros.bzl
+WORKSPACE
