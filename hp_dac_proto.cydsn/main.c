@@ -31,16 +31,29 @@
 #define I2S_DMA_DST_BASE            (CYDEV_PERIPH_BASE)
 #define I2S_DMA_SRC_BASE            (CYDEV_SRAM_BASE)
 #define I2S_DMA_TRANSFER_SIZE       (N_BYTES)
+#define I2S_DMA_TD_COUNT            (2u)
+#define I2S_DMA_TD_TERMOUT_EN       (DMA_I2S__TD_TERMOUT_EN)
+#define I2S_DMA_ENABLE_PRESERVE_TD  (1u)
 
 #define VOLUME  (200000)
 
 static void dma_tx_config(void);
+static void dma_tx_config2(void);
+
 CY_ISR_PROTO(mute_button);
+CY_ISR_PROTO(i2s_dma_done_isr);
 
 uint8_t i2s_out_dma_ch;
-uint8_t i2s_out_dma_td[1];
+uint8_t i2s_out_dma_td[I2S_DMA_TD_COUNT];
+
+uint8_t samples[I2S_DMA_TRANSFER_SIZE * I2S_DMA_TD_COUNT];
 
 volatile uint8_t mute_toggle = 0;
+volatile uint8_t out_index = 0;
+volatile uint8_t in_index = 0;
+volatile uint8_t sync_dma = 0;
+volatile uint8_t sync_dma_counter = 0;
+volatile uint8_t dma_done = 0;
 
 int main(void)
 {
@@ -51,16 +64,24 @@ int main(void)
     // Compute the lookup table for the sine wave
     audio_table(VOLUME);
     
+    dma_tx_config2();
     // Start everything.
     I2S_Start();
-    dma_tx_config();
     I2S_EnableTx();
     
     CyGlobalIntEnable;
     
     for ever
     {
-        // Everything is handled in ISRs and DMA. Just do nothing for the endless eternity.
+        // Halfway point. Copy buffer to new location
+        if (dma_done) {
+            dma_done = 0;
+            dma_done_isr_Disable();
+            memcpy(&samples[in_index * I2S_DMA_TRANSFER_SIZE], sample_byte_buf, I2S_DMA_TRANSFER_SIZE);
+            in_index++;
+            in_index = (in_index >= I2S_DMA_TD_COUNT) ? 0u : in_index;
+            dma_done_isr_Enable();
+        }
     }
 }
 
@@ -79,8 +100,38 @@ static void dma_tx_config(void)
     CyDmaChEnable(i2s_out_dma_ch, 1u);
 }
 
+// Chained DMA TD. Dump the full LUT into one half of the buffer while the
+// destination pointer is incrementing through the other half.
+static void dma_tx_config2(void)
+{
+    uint16_t i = 0;
+    
+    i2s_out_dma_ch = DMA_I2S_DmaInitialize(I2S_DMA_BYTES_PER_BURST, I2S_DMA_REQUEST_PER_BURST, HI16(I2S_DMA_SRC_BASE), HI16(I2S_DMA_DST_BASE));
+    for (i = 0; i < I2S_DMA_TD_COUNT; i++) {
+        i2s_out_dma_td[i] = CyDmaTdAllocate();
+    }
+    // Link buffers into a circular buffer.
+    for (i = 0; i < I2S_DMA_TD_COUNT; i++) {
+        CyDmaTdSetConfiguration(i2s_out_dma_td[i], I2S_DMA_TRANSFER_SIZE, i2s_out_dma_td[(i + 1) % I2S_DMA_TD_COUNT], (TD_INC_SRC_ADR | I2S_DMA_TD_TERMOUT_EN));
+    }
+    // Set source and destination addresses
+    for (i = 0; i < I2S_DMA_TD_COUNT; i++) {
+        CyDmaTdSetAddress(i2s_out_dma_td[i], LO16((uint32)&samples[i * I2S_DMA_TRANSFER_SIZE]), LO16((uint32)I2S_TX_CH0_F0_PTR));
+    }
+    CyDmaChSetInitialTd(i2s_out_dma_ch, i2s_out_dma_td[0]);
+    CyDmaChEnable(i2s_out_dma_ch, I2S_DMA_ENABLE_PRESERVE_TD);
+    dma_done_isr_StartEx(i2s_dma_done_isr);
+}
+
 // Toggle the mute state whenever it is pushed.
 CY_ISR(mute_button)
 {
     mute_Write(mute_toggle ^= 1);
+}
+
+CY_ISR(i2s_dma_done_isr)
+{
+    dma_done = 1;
+    ++out_index;
+    out_index = (out_index >= I2S_DMA_TD_COUNT) ? 0u : out_index;
 }
