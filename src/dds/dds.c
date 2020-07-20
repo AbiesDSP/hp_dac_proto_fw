@@ -1,5 +1,7 @@
 #include "dds/dds.h"
 #include <math.h>
+#define SAMPLE_RATE (48000)
+#define CONCERT_A   (440)
 
 int32_t sample_buf[N_SAMPLES];
 uint8_t sample_byte_buf[N_BYTES];
@@ -10,7 +12,7 @@ int dds_sin_table(int32_t amplitude)
     uint32_t i = 0;
 
     for (i = 0; i < N_SAMPLES; i++) {
-        sample_buf[i] = amplitude * sin((2 * M_PI * i)/N_SAMPLES);
+        sample_buf[i] = amplitude * sin((2 * M_PI * i)/(SAMPLE_RATE / CONCERT_A));
     }
     
     return 0;
