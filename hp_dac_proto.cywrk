@@ -8,6 +8,7 @@
 <files />
 <projects>
 <v>.\hp_dac_proto.cydsn\hp_dac_proto.cyprj</v>
+<v>.\bootloader.cydsn\bootloader.cyprj</v>
 </projects>
 <workspace_id v="6d46e346-fc50-44e7-bab7-85e6d6de163c" />
 <WriteAppVersionLastSavedWith v="4.2.0.641" />
