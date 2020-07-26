@@ -22,22 +22,32 @@
 #define I2S_DMA_TRANSFER_SIZE       (288u)
 #define I2S_DMA_TD_COUNT            (8u)
 #define I2S_DMA_ENABLE_PRESERVE_TD  (1u)
+static void dma_tx_config(void);
+uint8_t i2s_out_dma_ch;
+uint8_t i2s_out_dma_td[I2S_DMA_TD_COUNT];
+
+#define SYNC_BYTES_PER_BURST    (2u)
+#define SYNC_REQUEST_PER_BURST  (1u)
+#define SYNC_SRC_BASE           (CYDEV_PERIPH_BASE)
+#define SYNC_DST_BASE           (CYDEV_SRAM_BASE)
+#define SYNC_TRANSFER_SIZE      (SAMPLE_RATE_BUF_SIZE * SYNC_BYTES_PER_BURST)
+#define SYNC_TD_COUNT           (1u)
+#define SYNC_ENABLE_PRESERVE_TD (1u)
+static void dma_sync_config(void);
+uint8_t sync_dma_ch;
+uint8_t sync_dma_td[SYNC_TD_COUNT];
 
 #define USBFS_AUDIO_DEVICE  (0u)
 #define AUDIO_INTERFACE     (1u)
 #define USB_OUT_EP_NUM      (1u)
 
-#define SOF_BUF_SIZE    (100u)
-
-static void dma_tx_config(void);
+#define SAMPLE_RATE_BUF_SIZE    (256u)
+volatile uint16_t sample_rate_buf[SAMPLE_RATE_BUF_SIZE];
 
 CY_ISR_PROTO(mute_button);
 CY_ISR_PROTO(i2s_dma_done_isr);
 CY_ISR_PROTO(bootload_isr);
 CY_ISR_PROTO(sync_isr);
-
-uint8_t i2s_out_dma_ch;
-uint8_t i2s_out_dma_td[I2S_DMA_TD_COUNT];
 
 uint8_t samples[I2S_DMA_TRANSFER_SIZE * I2S_DMA_TD_COUNT];
 
@@ -47,8 +57,6 @@ volatile uint32_t in_index = 0;
 volatile uint32_t sync_dma = 0;
 volatile uint32_t sync_dma_counter = 0;
 volatile uint8_t sync_flag;
-volatile uint16_t xxx = 0;
-volatile uint16_t sof_buf[SOF_BUF_SIZE];
 volatile uint32_t mean = 0;
 volatile uint8_t mean_flag = 0;
 
@@ -64,6 +72,7 @@ int main(void)
     dma_done_isr_StartEx(i2s_dma_done_isr);
     I2S_Start();
     dma_tx_config();
+    dma_sync_config();
     
     boot_isr_StartEx(bootload_isr);
     sof_isr_StartEx(sync_isr);
@@ -79,10 +88,14 @@ int main(void)
         if (mean_flag) {
             mean_flag = 0;
             mean = 0;
-            for (z = 0; z < SOF_BUF_SIZE; z++) {
-                mean += sof_buf[z];
+            for (z = 0; z < SAMPLE_RATE_BUF_SIZE; z++) {
+                mean += sample_rate_buf[z];
             }
-            mean /= SOF_BUF_SIZE;
+            mean >>= 4;
+            for (z = 0; z < SAMPLE_RATE_BUF_SIZE; z++) {
+                sample_rate_buf[z] = 0;
+            }
+            CyDmaChEnable(sync_dma_ch, SYNC_ENABLE_PRESERVE_TD);
             (void)mean;
         }
         
@@ -159,6 +172,17 @@ static void dma_tx_config(void)
     CyDmaChSetInitialTd(i2s_out_dma_ch, i2s_out_dma_td[0]);
 }
 
+static void dma_sync_config(void)
+{
+    sync_dma_ch = DMA_Sync_DmaInitialize(SYNC_BYTES_PER_BURST, SYNC_REQUEST_PER_BURST, HI16(SYNC_SRC_BASE), HI16(SYNC_DST_BASE));
+    sync_dma_td[0] = CyDmaTdAllocate();
+    
+    CyDmaTdSetConfiguration(sync_dma_td[0], SYNC_TRANSFER_SIZE, sync_dma_td[0], (TD_INC_DST_ADR | DMA_Sync__TD_TERMOUT_EN));
+    CyDmaTdSetAddress(sync_dma_td[0], LO16((uint32)sync_counter_DP_F0_PTR), LO16((uint32)sample_rate_buf));
+    CyDmaChSetInitialTd(sync_dma_ch, sync_dma_td[0]);
+    CyDmaChEnable(sync_dma_ch, SYNC_ENABLE_PRESERVE_TD);
+}
+
 // Toggle the mute state whenever it is pushed.
 CY_ISR(mute_button)
 {
@@ -184,10 +208,6 @@ CY_ISR(bootload_isr)
 
 CY_ISR(sync_isr)
 {
-    sof_buf[xxx] = sync_counter_read();
-    xxx++;
-    if (xxx == SOF_BUF_SIZE) {
-        xxx = 0;
-        mean_flag = 1;
-    }
+    mean_flag = 1;
+    CyDmaChDisable(sync_dma_ch);
 }
