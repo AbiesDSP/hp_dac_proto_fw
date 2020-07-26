@@ -27,11 +27,14 @@
 #define AUDIO_INTERFACE     (1u)
 #define USB_OUT_EP_NUM      (1u)
 
+#define SOF_BUF_SIZE    (100u)
+
 static void dma_tx_config(void);
 
 CY_ISR_PROTO(mute_button);
 CY_ISR_PROTO(i2s_dma_done_isr);
 CY_ISR_PROTO(bootload_isr);
+CY_ISR_PROTO(sync_isr);
 
 uint8_t i2s_out_dma_ch;
 uint8_t i2s_out_dma_td[I2S_DMA_TD_COUNT];
@@ -43,10 +46,15 @@ volatile uint32_t out_index = 0;
 volatile uint32_t in_index = 0;
 volatile uint32_t sync_dma = 0;
 volatile uint32_t sync_dma_counter = 0;
+volatile uint8_t sync_flag;
+volatile uint16_t xxx = 0;
+volatile uint16_t sof_buf[SOF_BUF_SIZE];
+volatile uint32_t mean = 0;
+volatile uint8_t mean_flag = 0;
 
 int main(void)
 {
-    uint32_t i = 0, j = 0, k = 0;
+    uint32_t i = 0, j = 0, k = 0, z = 0;
     uint8_t temp[I2S_DMA_TRANSFER_SIZE];
     
     // Enable mute button ISR
@@ -58,6 +66,8 @@ int main(void)
     dma_tx_config();
     
     boot_isr_StartEx(bootload_isr);
+    sof_isr_StartEx(sync_isr);
+    
     CyGlobalIntEnable;
     
     // Start and enumerate USB.
@@ -66,6 +76,16 @@ int main(void)
     
     for ever
     {
+        if (mean_flag) {
+            mean_flag = 0;
+            mean = 0;
+            for (z = 0; z < SOF_BUF_SIZE; z++) {
+                mean += sof_buf[z];
+            }
+            mean /= SOF_BUF_SIZE;
+            (void)mean;
+        }
+        
         // USB Handler
         if (0u != USBFS_IsConfigurationChanged()) {
             // Check alt setting
@@ -159,5 +179,15 @@ CY_ISR(i2s_dma_done_isr)
 
 CY_ISR(bootload_isr)
 {
-    Bootloadable_Load();
+//    Bootloadable_Load();
+}
+
+CY_ISR(sync_isr)
+{
+    sof_buf[xxx] = sync_counter_read();
+    xxx++;
+    if (xxx == SOF_BUF_SIZE) {
+        xxx = 0;
+        mean_flag = 1;
+    }
 }
