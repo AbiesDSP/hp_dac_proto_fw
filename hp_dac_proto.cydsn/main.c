@@ -91,6 +91,7 @@ int main(void)
             for (z = 0; z < SAMPLE_RATE_BUF_SIZE; z++) {
                 mean += sample_rate_buf[z];
             }
+            // Oversampling
             mean >>= 4;
             for (z = 0; z < SAMPLE_RATE_BUF_SIZE; z++) {
                 sample_rate_buf[z] = 0;
