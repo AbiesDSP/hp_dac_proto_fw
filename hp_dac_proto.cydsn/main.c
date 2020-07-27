@@ -7,11 +7,7 @@
  * I2S DMA request is on FIFO not-full, so we just need to pack all the bytes into it.
  * don't worry about dividing it up into samples, the I2S component figures it out.
  *
- * For this example, we're just looping through a single cycle of a 440Hz sine wave.
- * The transfer size is the number of bytes in the sin wave lookup table. The DMA resets
- * back to the beginning after it completes so it plays infinitely.
- *
- * When USB is integrated, we'll need something a little better like an actual circular buffer.
+ * 
  *
  */
 
@@ -91,13 +87,12 @@ int main(void)
             for (z = 0; z < SAMPLE_RATE_BUF_SIZE; z++) {
                 mean += sample_rate_buf[z];
             }
-            // Oversampling
+            // Oversampling. Preserve decimal.
             mean >>= 4;
             for (z = 0; z < SAMPLE_RATE_BUF_SIZE; z++) {
                 sample_rate_buf[z] = 0;
             }
             CyDmaChEnable(sync_dma_ch, SYNC_ENABLE_PRESERVE_TD);
-            (void)mean;
         }
         
         // USB Handler
