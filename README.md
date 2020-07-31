@@ -22,7 +22,7 @@ Use the typical installation of PSoC Creator 4.3 or later for this project.
 Everything else should be installed in a Linux environment. This project was developed using WSL (Ubuntu).
 ``` bash
 gem install ceedling
-git lfs install
+sudo apt-get install git-lfs
 ```
 ## Project Setup
 Perform these commands in a Linux environment on Windows. This has been tested on WSL (Ubuntu).
