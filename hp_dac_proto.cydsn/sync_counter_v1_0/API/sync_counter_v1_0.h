@@ -12,7 +12,7 @@
 
 #ifndef `$INSTANCE_NAME`_H
 #define `$INSTANCE_NAME`_H
-void foo();
+    
 #include <stdint.h>
 
 void `$INSTANCE_NAME`_start(void);

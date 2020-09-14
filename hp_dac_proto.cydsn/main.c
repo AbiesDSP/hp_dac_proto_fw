@@ -35,9 +35,10 @@ uint8_t sync_dma_td[SYNC_TD_COUNT];
 
 #define USBFS_AUDIO_DEVICE  (0u)
 #define AUDIO_INTERFACE     (1u)
-#define USB_OUT_EP_NUM      (1u)
+#define USB_OUT_EP          (USBFS_EP1)
+#define USB_FB_EP           (USBFS_EP3)
 
-#define SAMPLE_RATE_BUF_SIZE    (256u)
+#define SAMPLE_RATE_BUF_SIZE    (128u)
 volatile uint16_t sample_rate_buf[SAMPLE_RATE_BUF_SIZE];
 
 CY_ISR_PROTO(mute_button);
@@ -55,17 +56,23 @@ volatile uint32_t sync_dma_counter = 0;
 volatile uint8_t sync_flag;
 volatile uint32_t mean = 0;
 volatile uint8_t mean_flag = 0;
+volatile uint32_t fb_counter = 0;
+volatile uint16_t usb_read_size = 0;
+volatile uint8_t readflag = 0;
+volatile uint16_t thestuff = 0;
 
 int main(void)
 {
     uint32_t i = 0, j = 0, k = 0, z = 0;
     uint8_t temp[I2S_DMA_TRANSFER_SIZE];
+    uint8_t fb_data[3] = {0x00, 0x00, 0x0C};
+    volatile uint32_t sample_rate_feedback = 0;
     
     // Enable mute button ISR
     mute_isr_StartEx(mute_button);
     mute_Write(mute_toggle);
     
-    dma_done_isr_StartEx(i2s_dma_done_isr);
+//    dma_done_isr_StartEx(i2s_dma_done_isr);
     I2S_Start();
     dma_tx_config();
     dma_sync_config();
@@ -78,6 +85,11 @@ int main(void)
     // Start and enumerate USB.
     USBFS_Start(USBFS_AUDIO_DEVICE, USBFS_DWR_VDDD_OPERATION);
     while (0u == USBFS_GetConfiguration());
+    sample_rate_feedback = 48 << 14;
+    fb_data[2] = (sample_rate_feedback >> 16) & 0xFF;
+    fb_data[1] = (sample_rate_feedback >> 8) & 0xFF;
+    fb_data[0] = (sample_rate_feedback) & 0xFF;
+//    USBFS_LoadInEP(USB_FB_EP, fb_data, 3);
     
     for ever
     {
@@ -87,12 +99,21 @@ int main(void)
             for (z = 0; z < SAMPLE_RATE_BUF_SIZE; z++) {
                 mean += sample_rate_buf[z];
             }
+            // Format feedback as 
+            sample_rate_feedback = mean / 6;
+            thestuff = sample_rate_feedback >> 14;
             // Oversampling. Preserve decimal.
             mean >>= 4;
             for (z = 0; z < SAMPLE_RATE_BUF_SIZE; z++) {
                 sample_rate_buf[z] = 0;
             }
             CyDmaChEnable(sync_dma_ch, SYNC_ENABLE_PRESERVE_TD);
+            
+            sample_rate_feedback = 48 << 14;
+            fb_data[2] = (sample_rate_feedback >> 16) & 0xFF;
+            fb_data[1] = (sample_rate_feedback >> 8) & 0xFF;
+            fb_data[0] = (sample_rate_feedback) & 0xFF;
+//            USBFS_LoadInEP(USB_FB_EP, fb_data, 3);
         }
         
         // USB Handler
@@ -104,20 +125,23 @@ int main(void)
                 out_index = 0u;
                 sync_dma = 0u;
                 sync_dma_counter = 0u;
-                USBFS_EnableOutEP(USB_OUT_EP_NUM);
+                USBFS_EnableOutEP(USB_OUT_EP);
             } else {
                 // mute? idk.
             }
         }
         // New data
-        if (USBFS_OUT_BUFFER_FULL == USBFS_GetEPState(USB_OUT_EP_NUM)) {
+        if (USBFS_OUT_BUFFER_FULL == USBFS_GetEPState(USB_OUT_EP)) {
             // TODO: Still need to make sure the computer data rate
             // matches the PSoC data rate..not totally done yet.
-            
+            usb_read_size = USBFS_GetEPCount(USB_OUT_EP);
+            if (usb_read_size != I2S_DMA_TRANSFER_SIZE) {
+                readflag = 1;
+            }
             // Read packet into buf. This initiates a dma transfer so
             // you could be doing something useful in the while loop.
-            USBFS_ReadOutEP(USB_OUT_EP_NUM, temp, I2S_DMA_TRANSFER_SIZE);
-            while (USBFS_OUT_BUFFER_FULL == USBFS_GetEPState(USB_OUT_EP_NUM));
+            USBFS_ReadOutEP(USB_OUT_EP, temp, I2S_DMA_TRANSFER_SIZE);
+            while (USBFS_OUT_BUFFER_FULL == USBFS_GetEPState(USB_OUT_EP));
             
             // Reverse byte order. This could(should) be done in hardware with a dma transfer.
             for (i = 0; i < 48; i++) {
@@ -129,13 +153,13 @@ int main(void)
             }
             
             // Move write pointer
-            dma_done_isr_Disable();
+//            dma_done_isr_Disable();
             in_index++;
             in_index = (in_index >= I2S_DMA_TD_COUNT) ? 0u : in_index;
-            dma_done_isr_Enable();
+//            dma_done_isr_Enable();
             sync_dma_counter++;
             
-            USBFS_EnableOutEP(USB_OUT_EP_NUM);
+            USBFS_EnableOutEP(USB_OUT_EP);
         }
 
         // Half full
@@ -199,11 +223,16 @@ CY_ISR(i2s_dma_done_isr)
 
 CY_ISR(bootload_isr)
 {
-    Bootloadable_Load();
+//    Bootloadable_Load();
 }
 
 CY_ISR(sync_isr)
 {
     mean_flag = 1;
     CyDmaChDisable(sync_dma_ch);
+}
+
+void USBFS_EP_3_ISR_ExitCallback()
+{
+    readflag = 43;
 }
