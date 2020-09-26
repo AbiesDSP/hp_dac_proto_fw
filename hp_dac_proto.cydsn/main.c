@@ -11,17 +11,6 @@
  *
  */
 
-#define I2S_DMA_BYTES_PER_BURST     (1u)
-#define I2S_DMA_REQUEST_PER_BURST   (1u)
-#define I2S_DMA_DST_BASE            (CYDEV_PERIPH_BASE)
-#define I2S_DMA_SRC_BASE            (CYDEV_SRAM_BASE)
-#define I2S_DMA_TRANSFER_SIZE       (288u)
-#define I2S_DMA_TD_COUNT            (8u)
-#define I2S_DMA_ENABLE_PRESERVE_TD  (1u)
-static void dma_tx_config(void);
-uint8_t i2s_out_dma_ch;
-uint8_t i2s_out_dma_td[I2S_DMA_TD_COUNT];
-
 #define SYNC_BYTES_PER_BURST    (2u)
 #define SYNC_REQUEST_PER_BURST  (1u)
 #define SYNC_SRC_BASE           (CYDEV_PERIPH_BASE)
@@ -33,11 +22,6 @@ static void dma_sync_config(void);
 uint8_t sync_dma_ch;
 uint8_t sync_dma_td[SYNC_TD_COUNT];
 
-#define USBFS_AUDIO_DEVICE  (0u)
-#define AUDIO_INTERFACE     (1u)
-#define USB_OUT_EP          (1u)
-#define USB_FB_EP           (3u)
-
 #define SAMPLE_RATE_BUF_SIZE    (128u)
 volatile uint16_t sample_rate_buf[SAMPLE_RATE_BUF_SIZE];
 
@@ -46,13 +30,7 @@ CY_ISR_PROTO(i2s_dma_done_isr);
 CY_ISR_PROTO(bootload_isr);
 CY_ISR_PROTO(sync_isr);
 
-uint8_t samples[I2S_DMA_TRANSFER_SIZE * I2S_DMA_TD_COUNT];
-
 volatile uint8_t mute_toggle = 1;
-volatile uint32_t out_index = 0;
-volatile uint32_t in_index = 0;
-volatile uint32_t sync_dma = 0;
-volatile uint32_t sync_dma_counter = 0;
 volatile uint8_t sync_flag;
 volatile uint32_t mean = 0;
 volatile uint8_t mean_flag = 0;
@@ -63,14 +41,10 @@ volatile uint16_t thestuff = 0;
 
 int main(void)
 {
-    uint32_t i = 0, j = 0, k = 0, z = 0;
-    uint8_t temp[I2S_DMA_TRANSFER_SIZE];
-    uint8_t fb_data[3] = {0x00, 0x00, 0x0C};
-    volatile uint32_t sample_rate_feedback = 0;
-    
     // Enable mute button ISR
     mute_isr_StartEx(mute_button);
     mute_Write(mute_toggle);
+    uint32_t z = 0;
     
 //    dma_done_isr_StartEx(i2s_dma_done_isr);
     I2S_Start();
@@ -85,14 +59,10 @@ int main(void)
     // Start and enumerate USB.
     USBFS_Start(USBFS_AUDIO_DEVICE, USBFS_DWR_VDDD_OPERATION);
     while (0u == USBFS_GetConfiguration());
-    sample_rate_feedback = 48 << 14;
-    fb_data[2] = (sample_rate_feedback >> 16) & 0xFF;
-    fb_data[1] = (sample_rate_feedback >> 8) & 0xFF;
-    fb_data[0] = (sample_rate_feedback) & 0xFF;
-    USBFS_LoadInEP(USB_FB_EP, fb_data, 3);
     
     for ever
     {
+        // This is to measure differences between usb and local clock.
         if (mean_flag) {
             mean_flag = 0;
             mean = 0;
@@ -108,67 +78,10 @@ int main(void)
                 sample_rate_buf[z] = 0;
             }
             CyDmaChEnable(sync_dma_ch, SYNC_ENABLE_PRESERVE_TD);
-            
-            // Less than half full
-            if (sync_dma_counter < (I2S_DMA_TD_COUNT / 2)) {
-                sample_rate_feedback += 8;
-            }
-            // Between 3/4 and full.
-            else if (sync_dma_counter > 6) {
-                sample_rate_feedback -= 8;
-            }
-            
-            fb_data[2] = (sample_rate_feedback >> 16) & 0xFF;
-            fb_data[1] = (sample_rate_feedback >> 8) & 0xFF;
-            fb_data[0] = (sample_rate_feedback) & 0xFF;
-            USBFS_LoadInEP(USB_FB_EP, fb_data, 3);
         }
         
         // USB Handler
-        if (0u != USBFS_IsConfigurationChanged()) {
-            // Check alt setting
-            if ((0u != USBFS_GetConfiguration()) && (0u != USBFS_GetInterfaceSetting(AUDIO_INTERFACE))) {
-                // Reset sync variables.
-                in_index = 0u;
-                out_index = 0u;
-                sync_dma = 0u;
-                sync_dma_counter = 0u;
-                USBFS_EnableOutEP(USB_OUT_EP);
-            } else {
-                // mute? idk.
-            }
-        }
-        // New data
-        if (USBFS_OUT_BUFFER_FULL == USBFS_GetEPState(USB_OUT_EP)) {
-            // TODO: Still need to make sure the computer data rate
-            // matches the PSoC data rate..not totally done yet.
-            usb_read_size = USBFS_GetEPCount(USB_OUT_EP);
-            if (usb_read_size != I2S_DMA_TRANSFER_SIZE) {
-                readflag = 1;
-            }
-            // Read packet into buf. This initiates a dma transfer so
-            // you could be doing something useful in the while loop.
-            USBFS_ReadOutEP(USB_OUT_EP, temp, I2S_DMA_TRANSFER_SIZE);
-            while (USBFS_OUT_BUFFER_FULL == USBFS_GetEPState(USB_OUT_EP));
-            
-            // Reverse byte order. This could(should) be done in hardware with a dma transfer.
-            for (i = 0; i < 48; i++) {
-                for (j = 0; j < 2; j++) {
-                    for (k = 0; k < 3; k++) {
-                        samples[in_index * I2S_DMA_TRANSFER_SIZE + i*6 + j*3 + k] = temp[i*6 + j*3 + (2-k)];
-                    }
-                }
-            }
-            
-            // Move write pointer
-//            dma_done_isr_Disable();
-            in_index++;
-            in_index = (in_index >= I2S_DMA_TD_COUNT) ? 0u : in_index;
-//            dma_done_isr_Enable();
-            sync_dma_counter++;
-            
-            USBFS_EnableOutEP(USB_OUT_EP);
-        }
+        service_usb();
 
         // Half full
         if ((0u == sync_dma) && (sync_dma_counter == (I2S_DMA_TD_COUNT / 2u))) {
@@ -179,27 +92,7 @@ int main(void)
     }
 }
 
-// Chained DMA TD. Dump the full LUT into one half of the buffer while the
-// destination pointer is incrementing through the other half.
-static void dma_tx_config(void)
-{
-    uint16_t i = 0;
-    
-    i2s_out_dma_ch = DMA_I2S_DmaInitialize(I2S_DMA_BYTES_PER_BURST, I2S_DMA_REQUEST_PER_BURST, HI16(I2S_DMA_SRC_BASE), HI16(I2S_DMA_DST_BASE));
-    for (i = 0; i < I2S_DMA_TD_COUNT; i++) {
-        i2s_out_dma_td[i] = CyDmaTdAllocate();
-    }
-    // Link buffers into a circular buffer.
-    for (i = 0; i < I2S_DMA_TD_COUNT; i++) {
-        CyDmaTdSetConfiguration(i2s_out_dma_td[i], I2S_DMA_TRANSFER_SIZE, i2s_out_dma_td[(i + 1) % I2S_DMA_TD_COUNT], (TD_INC_SRC_ADR | DMA_I2S__TD_TERMOUT_EN));
-    }
-    // Set source and destination addresses
-    for (i = 0; i < I2S_DMA_TD_COUNT; i++) {
-        CyDmaTdSetAddress(i2s_out_dma_td[i], LO16((uint32)&samples[i * I2S_DMA_TRANSFER_SIZE]), LO16((uint32)I2S_TX_CH0_F0_PTR));
-    }
-    CyDmaChSetInitialTd(i2s_out_dma_ch, i2s_out_dma_td[0]);
-}
-
+// For the sof measurements.
 static void dma_sync_config(void)
 {
     sync_dma_ch = DMA_Sync_DmaInitialize(SYNC_BYTES_PER_BURST, SYNC_REQUEST_PER_BURST, HI16(SYNC_SRC_BASE), HI16(SYNC_DST_BASE));
@@ -238,13 +131,4 @@ CY_ISR(sync_isr)
 {
     mean_flag = 1;
     CyDmaChDisable(sync_dma_ch);
-}
-
-void audio_out(void)
-{
-    readflag = 1;
-}
-void update_feedback(void)
-{
-    readflag = 1;
 }
