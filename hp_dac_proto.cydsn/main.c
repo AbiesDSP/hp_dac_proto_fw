@@ -35,8 +35,8 @@ uint8_t sync_dma_td[SYNC_TD_COUNT];
 
 #define USBFS_AUDIO_DEVICE  (0u)
 #define AUDIO_INTERFACE     (1u)
-#define USB_OUT_EP          (USBFS_EP1)
-#define USB_FB_EP           (USBFS_EP3)
+#define USB_OUT_EP          (1u)
+#define USB_FB_EP           (3u)
 
 #define SAMPLE_RATE_BUF_SIZE    (128u)
 volatile uint16_t sample_rate_buf[SAMPLE_RATE_BUF_SIZE];
@@ -89,7 +89,7 @@ int main(void)
     fb_data[2] = (sample_rate_feedback >> 16) & 0xFF;
     fb_data[1] = (sample_rate_feedback >> 8) & 0xFF;
     fb_data[0] = (sample_rate_feedback) & 0xFF;
-//    USBFS_LoadInEP(USB_FB_EP, fb_data, 3);
+    USBFS_LoadInEP(USB_FB_EP, fb_data, 3);
     
     for ever
     {
@@ -109,11 +109,19 @@ int main(void)
             }
             CyDmaChEnable(sync_dma_ch, SYNC_ENABLE_PRESERVE_TD);
             
-            sample_rate_feedback = 48 << 14;
+            // Less than half full
+            if (sync_dma_counter < (I2S_DMA_TD_COUNT / 2)) {
+                sample_rate_feedback += 8;
+            }
+            // Between 3/4 and full.
+            else if (sync_dma_counter > 6) {
+                sample_rate_feedback -= 8;
+            }
+            
             fb_data[2] = (sample_rate_feedback >> 16) & 0xFF;
             fb_data[1] = (sample_rate_feedback >> 8) & 0xFF;
             fb_data[0] = (sample_rate_feedback) & 0xFF;
-//            USBFS_LoadInEP(USB_FB_EP, fb_data, 3);
+            USBFS_LoadInEP(USB_FB_EP, fb_data, 3);
         }
         
         // USB Handler
@@ -232,7 +240,11 @@ CY_ISR(sync_isr)
     CyDmaChDisable(sync_dma_ch);
 }
 
-void USBFS_EP_3_ISR_ExitCallback()
+void audio_out(void)
 {
-    readflag = 43;
+    readflag = 1;
+}
+void update_feedback(void)
+{
+    readflag = 1;
 }
