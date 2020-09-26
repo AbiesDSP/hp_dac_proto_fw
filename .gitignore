@@ -10,6 +10,8 @@
 !*.cydsn/cyapicallbacks.h
 !*.cydsn/TopDesign/
 !*.cydsn/TopDesign/*.cysch
+!*.cydsn/sync_counter*
+!*.cydsn/byte_swap*
 *.LOG
 *.cycdx
 *.cyfit

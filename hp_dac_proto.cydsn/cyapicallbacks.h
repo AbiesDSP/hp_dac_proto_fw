@@ -11,11 +11,19 @@
 */
 #ifndef CYAPICALLBACKS_H
 #define CYAPICALLBACKS_H
+    #include "audio/audio.h"
+    #include "usb/usb.h"
     
-
     /*Define your macro callbacks here */
     /*For more information, refer to the Writing Code topic in the PSoC Creator Help.*/
-
+    #define USBFS_EP_1_ISR_ENTRY_CALLBACK
+    #define USBFS_EP_1_ISR_EntryCallback()  audio_out()
+    
+    #define USBFS_EP_3_ISR_ENTRY_CALLBACK
+    #define USBFS_EP_3_ISR_EntryCallback()  async_transfer()
+    
+    #define USBFS_SOF_ISR_ENTRY_CALLBACK	
+	#define USBFS_SOF_ISR_EntryCallback()	feedback_count()
     
 #endif /* CYAPICALLBACKS_H */   
 /* [] */
