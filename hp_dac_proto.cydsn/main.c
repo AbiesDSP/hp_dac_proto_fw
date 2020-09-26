@@ -124,7 +124,7 @@ CY_ISR(i2s_dma_done_isr)
 
 CY_ISR(bootload_isr)
 {
-//    Bootloadable_Load();
+    Bootloadable_Load();
 }
 
 CY_ISR(sync_isr)

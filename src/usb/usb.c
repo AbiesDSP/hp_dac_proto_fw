@@ -32,6 +32,7 @@ void feedback_count(void)
     }
 }
 
+// This is called whenever the host requests feedback. Not sure what we need to do here.
 void async_transfer(void)
 {
     sample_rate_feedback = 48 << 14;
