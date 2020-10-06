@@ -34,10 +34,8 @@ volatile uint8_t mute_toggle = 1;
 volatile uint8_t sync_flag;
 volatile uint32_t mean = 0;
 volatile uint8_t mean_flag = 0;
-volatile uint32_t fb_counter = 0;
 volatile uint16_t usb_read_size = 0;
 volatile uint8_t readflag = 0;
-volatile uint16_t thestuff = 0;
 
 int main(void)
 {
@@ -46,7 +44,7 @@ int main(void)
     mute_Write(mute_toggle);
     uint32_t z = 0;
     
-//    dma_done_isr_StartEx(i2s_dma_done_isr);
+    i2s_isr_StartEx(i2s_dma_done_isr);
     I2S_Start();
     dma_tx_config();
     dma_sync_config();
@@ -71,7 +69,7 @@ int main(void)
             }
             // Format feedback as 
             sample_rate_feedback = mean / 6;
-            thestuff = sample_rate_feedback >> 14;
+            
             // Oversampling. Preserve decimal.
             mean >>= 4;
             for (z = 0; z < SAMPLE_RATE_BUF_SIZE; z++) {
@@ -83,12 +81,19 @@ int main(void)
         // USB Handler
         service_usb();
 
-        // Half full
-        if ((0u == sync_dma) && (sync_dma_counter == (I2S_DMA_TD_COUNT / 2u))) {
-            CyDmaChEnable(i2s_out_dma_ch, I2S_DMA_ENABLE_PRESERVE_TD);
-            sync_dma = 1;
-            I2S_EnableTx();
+        if (sync_dma == 0) {
+            if (usb_buffer_size() > HALF) {
+                CyDmaChEnable(i2s_out_dma_ch, I2S_DMA_ENABLE_PRESERVE_TD);
+                sync_dma = 1;
+                I2S_EnableTx();
+            }
         }
+        // Half full
+//        if ((sync_dma == 0) && level > (int32_t)(I2S_DMA_TD_COUNT / 2)) {
+//            CyDmaChEnable(i2s_out_dma_ch, I2S_DMA_ENABLE_PRESERVE_TD);
+//            sync_dma = 1;
+//            I2S_EnableTx();
+//        }
     }
 }
 
@@ -112,19 +117,19 @@ CY_ISR(mute_button)
 
 CY_ISR(i2s_dma_done_isr)
 {
-    ++out_index;
-    out_index = (out_index >= I2S_DMA_TD_COUNT) ? 0u : out_index;
-    if (out_index == in_index) {
+    i2s_index += I2S_DMA_TRANSFER_SIZE;
+    i2s_index = i2s_index == (I2S_DMA_TRANSFER_SIZE * I2S_DMA_TD_COUNT) ? 0 : i2s_index;
+    // 
+    if (i2s_index == sample_index) {
         CyDmaChDisable(i2s_out_dma_ch);
         I2S_DisableTx();
         sync_dma = 0;
-        sync_dma_counter = 0;
     }
 }
 
 CY_ISR(bootload_isr)
 {
-    Bootloadable_Load();
+//    Bootloadable_Load();
 }
 
 CY_ISR(sync_isr)

@@ -8,16 +8,24 @@
 #define AUDIO_OUT_EP    (1u)
 #define AUDIO_IN_EP     (2u)
 #define AUDIO_FB_EP     (3u)
-#define MAX_FRAME_SIZE (288u)
+#define MAX_FRAME_SIZE (294u)
     
 extern uint8_t usb_out_buf[MAX_FRAME_SIZE];
 extern uint8_t fb_data[3];
 extern uint8_t fb_updated;
 extern uint32_t sample_rate_feedback;
 
-void feedback_count(void);
-void async_transfer(void);
+extern uint8_t audio_active;
+
+// Debugging variables
+extern uint32_t sof_counter;
+extern uint32_t fb_counter;
+
+void usb_sof(void);
+void usb_feedback(void);
 void service_usb(void);
+
+uint32_t usb_buffer_size(void);
 
 #endif
     

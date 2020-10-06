@@ -20,10 +20,10 @@
     #define USBFS_EP_1_ISR_EntryCallback()  audio_out()
     
     #define USBFS_EP_3_ISR_ENTRY_CALLBACK
-    #define USBFS_EP_3_ISR_EntryCallback()  async_transfer()
+    #define USBFS_EP_3_ISR_EntryCallback()  usb_feedback()
     
     #define USBFS_SOF_ISR_ENTRY_CALLBACK	
-	#define USBFS_SOF_ISR_EntryCallback()	feedback_count()
+	#define USBFS_SOF_ISR_EntryCallback()	usb_sof()
     
 #endif /* CYAPICALLBACKS_H */   
 /* [] */

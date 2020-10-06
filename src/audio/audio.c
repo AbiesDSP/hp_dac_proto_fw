@@ -2,39 +2,47 @@
 #include "usb/usb.h"
 
 #include "project.h"
-uint32_t out_index = 0;
-uint32_t in_index = 0;
-uint32_t sync_dma = 0;
-uint32_t sync_dma_counter = 0;
 
 uint8_t samples[I2S_DMA_TRANSFER_SIZE * I2S_DMA_TD_COUNT];
 uint8_t i2s_out_dma_ch;
 uint8_t i2s_out_dma_td[I2S_DMA_TD_COUNT];
+
+uint32_t sample_index = 0;
+uint32_t i2s_index = 0;
+uint32_t in_index = 0;
+uint32_t sync_dma = 0;
+int32_t level = 0;
+volatile int dumb = 0;
+
+//
+uint32_t audio_out_count = 0;
 
 // Audio out callback. Called whenever a new isochronous packet arrives.
 // Automatic dma transfers will put the new data into "usb_out_buf"
 void audio_out(void)
 {
     uint8_t i, j, k;
-    uint16_t count = 0;
+    uint16_t count = 0, n_samples = 0;
+    
+    audio_out_count++;
     
     // Check usb frame size
     count = USBFS_GetEPCount(AUDIO_OUT_EP);
-    if (count != I2S_DMA_TRANSFER_SIZE) {
-        i = 0;  // debugging
+    n_samples = count / 6;
+    if (level != 0) {
+        dumb = 1;
     }
     // Reverse byte order. This could(should) be done in hardware with a dma transfer.
-    for (i = 0; i < 48; i++) {
+    for (i = 0; i < n_samples; i++) {
         for (j = 0; j < 2; j++) {
             for (k = 0; k < 3; k++) {
-                samples[in_index * I2S_DMA_TRANSFER_SIZE + i*6 + j*3 + k] = usb_out_buf[i*6 + j*3 + (2-k)];
+                // increment sample index.
+                samples[sample_index] = usb_out_buf[i*6 + j*3 + (2-k)];
+                sample_index++;
+                sample_index = sample_index == (I2S_DMA_TRANSFER_SIZE * I2S_DMA_TD_COUNT) ? 0 : sample_index;
             }
         }
     }
-    // Update buffer indices
-    in_index++;
-    in_index = (in_index >= I2S_DMA_TD_COUNT) ? 0u : in_index;
-    sync_dma_counter++;
 }
 
 // Chained DMA TD. Dump the full LUT into one half of the buffer while the
