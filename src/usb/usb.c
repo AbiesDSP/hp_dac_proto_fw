@@ -4,35 +4,41 @@
 uint8_t fb_data[3] = {0x00, 0x00, 0x0C};
 uint8_t fb_updated = 0;
 uint32_t sample_rate_feedback = 0;
-uint8_t audio_active = 0;
+
+uint32_t out_usb_count;
+uint32_t out_usb_shadow;
+uint32_t out_level;
 
 uint8_t usb_out_buf[MAX_FRAME_SIZE];
 
-// Debugging variables
-uint32_t sof_counter = 0;
-uint32_t fb_counter = 0;
-
 void usb_sof(void)
 {
-    uint16_t samples = 0;
-    uint32_t buf_size = 0;
-    sof_counter++;
+    uint16_t really = 0;
     
-    samples = ((uint16_t)fb_data[2] << 8) | fb_data[1];
-    buf_size = usb_buffer_size();
+    // Old samples value. (default)
+    really = ((uint16_t)fb_data[2] << 8) | fb_data[1];
     
+//    if (fb_updated == 0) {
+//        fb_updated = 1;
+//        if (out_level < HALF) {
+//            really = 3136;
+//        } else if (out_level > MOST) {
+//            really = 3008;
+//        }
+//    }
     if (fb_updated == 0) {
-        samples = sample_rate_feedback >> 8;
-        if (samples > 3136) {
-            samples = 3136;
-        } else if (samples < 3008) {
-            samples = 3008;
-        }
+//        really = sample_rate_feedback >> 8;
+//        if (really > 3136) {
+//            really = 3136;
+//        } else if (really < 3008) {
+//            really = 3008;
+//        }
         fb_updated = 1;
     }
 
-    fb_data[2] = HI8(samples);
-    fb_data[1] = LO8(samples);
+    fb_data[2] = HI8(really);
+    fb_data[1] = LO8(really);
+    fb_data[0] = 0;
     
     if ((USBFS_GetEPState(AUDIO_FB_EP) == USBFS_IN_BUFFER_EMPTY)) {
         USBFS_LoadInEP(AUDIO_FB_EP, USBFS_NULL, 3);
@@ -42,8 +48,6 @@ void usb_sof(void)
 // This is called whenever the host requests feedback. Not sure what we need to do here.
 void usb_feedback(void)
 {
-    fb_counter++;
-    sample_rate_feedback = 48 << 14;
     fb_data[2] = 0x0C;
     fb_data[1] = 0x00;
     fb_data[0] = 0x00;
@@ -61,17 +65,21 @@ void service_usb(void)
             in_index = 0u;
             sync_dma = 0u;
             
+            out_usb_count = 0;
+            out_usb_shadow = 0;
+            out_level = 0;
+            
             level = 0;
-            sample_rate_feedback = 48 << 14;
             fb_data[2] = 0x0C;
             fb_data[1] = 0x00;
             fb_data[0] = 0x00;
-            USBFS_ReadOutEP(AUDIO_OUT_EP, usb_out_buf, I2S_DMA_TRANSFER_SIZE);
+            USBFS_ReadOutEP(AUDIO_OUT_EP, usb_out_buf, 294u);
             USBFS_EnableOutEP(AUDIO_OUT_EP);
             USBFS_LoadInEP(AUDIO_FB_EP, fb_data, 3);
             USBFS_LoadInEP(AUDIO_FB_EP, USBFS_NULL, 3);
         } else {
             // mute? idk.
+//          audio_stop();
         }
     }
 }

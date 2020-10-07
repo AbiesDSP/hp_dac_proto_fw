@@ -14,9 +14,6 @@ uint32_t sync_dma = 0;
 int32_t level = 0;
 volatile int dumb = 0;
 
-//
-uint32_t audio_out_count = 0;
-
 // Audio out callback. Called whenever a new isochronous packet arrives.
 // Automatic dma transfers will put the new data into "usb_out_buf"
 void audio_out(void)
@@ -24,10 +21,12 @@ void audio_out(void)
     uint8_t i, j, k;
     uint16_t count = 0, n_samples = 0;
     
-    audio_out_count++;
-    
     // Check usb frame size
     count = USBFS_GetEPCount(AUDIO_OUT_EP);
+    i2s_isr_Disable();
+    out_usb_count += count;
+    i2s_isr_Enable();
+    
     n_samples = count / 6;
     if (level != 0) {
         dumb = 1;
@@ -37,10 +36,19 @@ void audio_out(void)
         for (j = 0; j < 2; j++) {
             for (k = 0; k < 3; k++) {
                 // increment sample index.
-                samples[sample_index] = usb_out_buf[i*6 + j*3 + (2-k)];
-                sample_index++;
+                samples[sample_index++] = usb_out_buf[i*6 + j*3 + (2-k)];
                 sample_index = sample_index == (I2S_DMA_TRANSFER_SIZE * I2S_DMA_TD_COUNT) ? 0 : sample_index;
             }
+        }
+    }
+
+    // Start playing audio when half full.
+    if (sync_dma == 0) {
+        if (out_usb_count > HALF) {
+            I2S_ClearTxFIFO();
+            CyDmaChEnable(i2s_out_dma_ch, I2S_DMA_ENABLE_PRESERVE_TD);
+            sync_dma = 1;
+            I2S_EnableTx();
         }
     }
 }
@@ -64,4 +72,22 @@ void dma_tx_config(void)
         CyDmaTdSetAddress(i2s_out_dma_td[i], LO16((uint32)&samples[i * I2S_DMA_TRANSFER_SIZE]), LO16((uint32)I2S_TX_CH0_F0_PTR));
     }
     CyDmaChSetInitialTd(i2s_out_dma_ch, i2s_out_dma_td[0]);
+}
+
+void audio_stop(void)
+{
+    if (sync_dma) {
+        I2S_DisableTx();
+        CyDelayUs(20);
+        CyDmaChDisable(i2s_out_dma_ch);
+        out_level = 0;
+        out_usb_shadow = 0;
+        out_usb_count = 0;
+        sync_dma = 0;
+    }
+}
+
+void audio_start(void)
+{
+    
 }

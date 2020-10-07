@@ -37,6 +37,9 @@ volatile uint8_t mean_flag = 0;
 volatile uint16_t usb_read_size = 0;
 volatile uint8_t readflag = 0;
 
+volatile uint8_t bugflag = 0;
+volatile uint32_t usbbufsize = 0;
+
 int main(void)
 {
     // Enable mute button ISR
@@ -79,21 +82,9 @@ int main(void)
         }
         
         // USB Handler
-        service_usb();
-
-        if (sync_dma == 0) {
-            if (usb_buffer_size() > HALF) {
-                CyDmaChEnable(i2s_out_dma_ch, I2S_DMA_ENABLE_PRESERVE_TD);
-                sync_dma = 1;
-                I2S_EnableTx();
-            }
+        if (USBFS_GetConfiguration()) {
+            service_usb();
         }
-        // Half full
-//        if ((sync_dma == 0) && level > (int32_t)(I2S_DMA_TD_COUNT / 2)) {
-//            CyDmaChEnable(i2s_out_dma_ch, I2S_DMA_ENABLE_PRESERVE_TD);
-//            sync_dma = 1;
-//            I2S_EnableTx();
-//        }
     }
 }
 
@@ -117,13 +108,21 @@ CY_ISR(mute_button)
 
 CY_ISR(i2s_dma_done_isr)
 {
-    i2s_index += I2S_DMA_TRANSFER_SIZE;
-    i2s_index = i2s_index == (I2S_DMA_TRANSFER_SIZE * I2S_DMA_TD_COUNT) ? 0 : i2s_index;
-    // 
-    if (i2s_index == sample_index) {
-        CyDmaChDisable(i2s_out_dma_ch);
-        I2S_DisableTx();
-        sync_dma = 0;
+    uint32_t added;
+    
+    added = out_usb_count - out_usb_shadow;
+    out_level += added;
+    out_usb_shadow = out_usb_count;
+    
+    // Underflow
+    if (out_level <= QUAR) {
+//        audio_stop();
+    } else {
+        out_level -= I2S_DMA_TRANSFER_SIZE;
+    }
+    // Overflow
+    if (out_level > (AUDIO_BUF_SIZE + 6)) {
+        audio_stop();
     }
 }
 

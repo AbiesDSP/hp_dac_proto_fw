@@ -15,11 +15,9 @@ extern uint8_t fb_data[3];
 extern uint8_t fb_updated;
 extern uint32_t sample_rate_feedback;
 
-extern uint8_t audio_active;
-
-// Debugging variables
-extern uint32_t sof_counter;
-extern uint32_t fb_counter;
+extern uint32_t out_usb_count;
+extern uint32_t out_usb_shadow;
+extern uint32_t out_level;
 
 void usb_sof(void);
 void usb_feedback(void);
