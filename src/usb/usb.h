@@ -22,7 +22,8 @@
 #define USB_ALT_ACTIVE_16   (1u)
 #define USB_ALT_INVALID     (0xFF)
     
-#define USB_FB_INC  (0x10);
+#define USB_FB_INC      (0x20);
+#define USB_FB_RANGE    (864u)
 
 extern uint8_t usb_out_buf[USB_BUF_SIZE];
 extern uint8_t fb_data[3];

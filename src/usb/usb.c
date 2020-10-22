@@ -38,11 +38,11 @@ void usb_sof(void)
      new_fb = ((uint16_t)fb_data[2] << 8) | fb_data[1];
     
     if (fb_updated == 0) {
-        if (size < (AUDIO_OUT_ACTIVE_LIMIT - 288u)) {
+        if (size < (AUDIO_OUT_ACTIVE_LIMIT - USB_FB_RANGE)) {
 //            new_fb = sync_new_feedback >> 8;
             new_fb += USB_FB_INC;
             fb_updated = 1;
-        } else if (size > (AUDIO_OUT_ACTIVE_LIMIT + 288u)) {
+        } else if (size > (AUDIO_OUT_ACTIVE_LIMIT + USB_FB_RANGE)) {
 //            new_fb = sync_new_feedback >> 8;
             new_fb -= USB_FB_INC;
             fb_updated = 1;
