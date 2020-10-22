@@ -8,6 +8,7 @@
 
 #define MAX_TRANSFER_SIZE   (4095u)
 #define FIFO_HALF_FULL_MASK (0x0C)
+#define N_BS_TD             ((AUDIO_OUT_BUF_SIZE + (MAX_TRANSFER_SIZE - 1))/MAX_TRANSFER_SIZE)
 
 uint8_t audio_out_buf[AUDIO_OUT_BUF_SIZE];
 volatile uint16_t audio_out_buffer_size;
@@ -16,7 +17,7 @@ volatile uint8_t audio_out_status;
 volatile uint8_t audio_out_update_flag;
 
 static uint8_t usb_dma_td[1];
-static uint8_t bs_dma_td[AUDIO_OUT_N_TD];
+static uint8_t bs_dma_td[N_BS_TD];
 static uint8_t i2s_dma_td[AUDIO_OUT_N_TD];
 
 static uint8_t usb_dma_ch;
@@ -35,6 +36,7 @@ static void i2s_dma_config(void);
 void audio_out_init(audio_out_config config)
 {
     uint16_t i;
+
     usb_dma_ch = config.usb_dma_ch;
     usb_dma_termout_en = config.usb_dma_termout_en;
     bs_dma_ch = config.bs_dma_ch;
@@ -47,7 +49,7 @@ void audio_out_init(audio_out_config config)
 
     // Allocate all TDs
     usb_dma_td[0] = CyDmaTdAllocate();
-    for (i = 0; i < AUDIO_OUT_N_TD; i++) {
+    for (i = 0; i < N_BS_TD; i++) {
         bs_dma_td[i] = CyDmaTdAllocate();
     }
     for (i = 0; i < AUDIO_OUT_N_TD; i++) {
@@ -134,12 +136,16 @@ void audio_out_disable(void)
 
 static void bs_dma_config(void)
 {
-    uint16_t i;
-    // This could be done with fewer TDs. Don't care.
-    for (i = 0; i < AUDIO_OUT_N_TD; i++) {
-        // Loop around entire buffer.
-        CyDmaTdSetConfiguration(bs_dma_td[i], AUDIO_OUT_TRANSFER_SIZE, bs_dma_td[(i + 1) % AUDIO_OUT_N_TD], (TD_INC_DST_ADR | bs_dma_termout_en));
-        CyDmaTdSetAddress(bs_dma_td[i], LO16((uint32_t)bs_fifo_out), LO16((uint32_t)&audio_out_buf[i * AUDIO_OUT_TRANSFER_SIZE]));
+    uint16_t i = 0;
+    uint16_t remain, transfer_size;
+
+    remain = AUDIO_OUT_BUF_SIZE;
+    while (remain > 0) {
+        transfer_size = remain > MAX_TRANSFER_SIZE ? MAX_TRANSFER_SIZE : remain;
+        CyDmaTdSetConfiguration(bs_dma_td[i], transfer_size, bs_dma_td[(i + 1) % N_BS_TD], (TD_INC_DST_ADR | bs_dma_termout_en));
+        CyDmaTdSetAddress(bs_dma_td[i], LO16((uint32_t)bs_fifo_out), LO16((uint32_t)&audio_out_buf[i * MAX_TRANSFER_SIZE]));
+        i++;
+        remain -= transfer_size;
     }
     CyDmaChSetInitialTd(bs_dma_ch, bs_dma_td[0]);
 }

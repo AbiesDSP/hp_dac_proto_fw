@@ -96,6 +96,7 @@ int main(void)
     
     uint8_t int_status;
     uint16_t buf_size;
+    uint16_t update_mod = 0;
 //    uint8_t error = 0;
 //    uint8_t rx_status = 0;
 //    uint16_t rx_size = 0, packet_size = 0;
@@ -124,8 +125,8 @@ int main(void)
         if (USBFS_GetConfiguration()) {
             usb_service();
         }
-        if (audio_out_update_flag) {
-            audio_out_update_flag = 0;
+        if (fb_update_flag) {
+            fb_update_flag = 0;
             int_status = CyEnterCriticalSection();
             buf_size = audio_out_buffer_size;
             CyExitCriticalSection(int_status);
