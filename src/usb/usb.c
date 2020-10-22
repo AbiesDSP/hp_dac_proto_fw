@@ -27,7 +27,7 @@ void usb_start(void)
 
 void usb_sof(void)
 {
-    uint16_t new_fb = 0, sync_fb = 0, size = 0;
+    uint16_t new_fb = 0, size = 0;
     uint8_t int_status = 0;
     
     int_status = CyEnterCriticalSection();

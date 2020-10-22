@@ -66,7 +66,6 @@ int main(void)
         .bs_fifo_out = byte_swap_fifo_out_ptr
     };
     
-    uint8_t temp_buf[TEST_BUF_SIZE];
     // buffers used by comm library
     uint8_t rx_buf[RX_BUF_SIZE];
     uint8_t tx_buf[TX_BUF_SIZE];
@@ -99,9 +98,9 @@ int main(void)
     
     uint8_t int_status;
     uint16_t buf_size;
-    uint8_t error = 0;
-    uint8_t rx_status = 0;
-    uint16_t rx_size = 0, packet_size = 0;
+//    uint8_t error = 0;
+//    uint8_t rx_status = 0;
+//    uint16_t rx_size = 0, packet_size = 0;
 
     comm_main = comm_create(uart_config);
     
