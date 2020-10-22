@@ -4,10 +4,33 @@
     <Data key="ClockSolver" value="1" />
     <Group key="DesigneWideClks" />
     <Group key="LocalClks">
-      <Group key="4bab0f18-5135-4bd9-856f-060dab5b2a44">
+      <Group key="3e1f7e38-1f21-4b05-a75d-6a3af31b18a9">
         <Data key="check_tolerance" value="True" />
         <Data key="clock_version" value="v1" />
         <Data key="derive_type" value="AUTO" />
+        <Data key="desired_freq" value="300" />
+        <Data key="desired_unit" value="0" />
+        <Data key="divider" value="40960" />
+        <Data key="domain" value="DIGITAL" />
+        <Data key="enabled" value="True" />
+        <Data key="minus_accuracy" value="0.0005" />
+        <Data key="minus_tolerance" value="5" />
+        <Data key="name" value="deb_clk" />
+        <Data key="netlist_name" value="deb_clk" />
+        <Data key="placement" value="AUTO" />
+        <Data key="plus_accuracy" value="0.0005" />
+        <Data key="plus_tolerance" value="5" />
+        <Data key="scope" value="LOCAL" />
+        <Data key="src_clk_id" value="46B167E3-1786-4598-8688-AACCF18668D4" />
+        <Data key="src_clk_name" value="XTAL" />
+        <Data key="start_on_reset" value="True" />
+        <Data key="sync_with_bus_clk" value="True" />
+        <Data key="user_set_domain" value="False" />
+      </Group>
+      <Group key="4bab0f18-5135-4bd9-856f-060dab5b2a44">
+        <Data key="check_tolerance" value="True" />
+        <Data key="clock_version" value="v1" />
+        <Data key="derive_type" value="NAMED_FREQ" />
         <Data key="desired_freq" value="12.288" />
         <Data key="desired_unit" value="6" />
         <Data key="divider" value="3" />
@@ -16,6 +39,7 @@
         <Data key="minus_accuracy" value="0.0005" />
         <Data key="minus_tolerance" value="0.1" />
         <Data key="name" value="i2s_mclk_clk" />
+        <Data key="named_src_direct_connect" value="False" />
         <Data key="netlist_name" value="i2s_mclk_clk" />
         <Data key="placement" value="AUTO" />
         <Data key="plus_accuracy" value="0.0005" />
@@ -27,10 +51,34 @@
         <Data key="sync_with_bus_clk" value="True" />
         <Data key="user_set_domain" value="False" />
       </Group>
+      <Group key="032b2d86-90f0-4f52-8fc6-11b9c75cca59">
+        <Data key="check_tolerance" value="True" />
+        <Data key="clock_version" value="v1" />
+        <Data key="derive_type" value="NAMED_DIVIDER" />
+        <Data key="desired_freq" value="0" />
+        <Data key="desired_unit" value="15" />
+        <Data key="divider" value="0" />
+        <Data key="domain" value="DIGITAL" />
+        <Data key="enabled" value="True" />
+        <Data key="minus_accuracy" value="0.0005" />
+        <Data key="minus_tolerance" value="5" />
+        <Data key="name" value="Clock_1" />
+        <Data key="named_src_direct_connect" value="True" />
+        <Data key="netlist_name" value="Clock_1" />
+        <Data key="placement" value="AUTO" />
+        <Data key="plus_accuracy" value="0.0005" />
+        <Data key="plus_tolerance" value="5" />
+        <Data key="scope" value="LOCAL" />
+        <Data key="src_clk_id" value="75C2148C-3656-4d8a-846D-0CAE99AB6FF7" />
+        <Data key="src_clk_name" value="BUS_CLK" />
+        <Data key="start_on_reset" value="True" />
+        <Data key="sync_with_bus_clk" value="True" />
+        <Data key="user_set_domain" value="False" />
+      </Group>
       <Group key="3700d4ea-40b4-414f-acb1-c0725a7ee8f9">
         <Data key="check_tolerance" value="True" />
         <Data key="clock_version" value="v1" />
-        <Data key="derive_type" value="AUTO" />
+        <Data key="derive_type" value="NAMED_FREQ" />
         <Data key="desired_freq" value="4.608" />
         <Data key="desired_unit" value="6" />
         <Data key="divider" value="8" />
@@ -39,6 +87,7 @@
         <Data key="minus_accuracy" value="0.0005" />
         <Data key="minus_tolerance" value="0.1" />
         <Data key="name" value="i2s_clk" />
+        <Data key="named_src_direct_connect" value="False" />
         <Data key="netlist_name" value="i2s_clk" />
         <Data key="placement" value="AUTO" />
         <Data key="plus_accuracy" value="0.0005" />
@@ -46,6 +95,30 @@
         <Data key="scope" value="LOCAL" />
         <Data key="src_clk_id" value="61737EF6-3B74-48f9-8B91-F7473A442AE7" />
         <Data key="src_clk_name" value="MASTER_CLK" />
+        <Data key="start_on_reset" value="True" />
+        <Data key="sync_with_bus_clk" value="True" />
+        <Data key="user_set_domain" value="False" />
+      </Group>
+      <Group key="c0065ef1-1b4a-4c27-bd7a-de833fd58b42/05cf1099-aac9-4226-a133-1bc328368208">
+        <Data key="check_tolerance" value="True" />
+        <Data key="clock_version" value="v1" />
+        <Data key="derive_type" value="NAMED_DIVIDER" />
+        <Data key="desired_freq" value="0" />
+        <Data key="desired_unit" value="15" />
+        <Data key="divider" value="0" />
+        <Data key="domain" value="DIGITAL" />
+        <Data key="enabled" value="True" />
+        <Data key="minus_accuracy" value="0.0005" />
+        <Data key="minus_tolerance" value="5" />
+        <Data key="name" value="USBFS_USB_BUS_CLOCK" />
+        <Data key="named_src_direct_connect" value="True" />
+        <Data key="netlist_name" value="\USBFS:USB_BUS_CLOCK\" />
+        <Data key="placement" value="AUTO" />
+        <Data key="plus_accuracy" value="0.0005" />
+        <Data key="plus_tolerance" value="5" />
+        <Data key="scope" value="LOCAL" />
+        <Data key="src_clk_id" value="75C2148C-3656-4d8a-846D-0CAE99AB6FF7" />
+        <Data key="src_clk_name" value="BUS_CLK" />
         <Data key="start_on_reset" value="True" />
         <Data key="sync_with_bus_clk" value="True" />
         <Data key="user_set_domain" value="False" />
@@ -129,7 +202,7 @@
         <Data key="xtal_enable_fault_recovery" value="False" />
         <Data key="xtal_feedback_ref_level" value="3" />
         <Data key="xtal_halt_on_eco_startup_error" value="True" />
-        <Data key="xtal_load_capacitance" value="12" />
+        <Data key="xtal_load_capacitance" value="10" />
         <Data key="xtal_ref_level_customized" value="False" />
         <Data key="xtal_shunt_capacitance" value="7" />
         <Data key="xtal_use_custom_timeout" value="False" />
@@ -290,15 +363,17 @@
   </Group>
   <Group key="Component">
     <Group key="v1">
-      <Data key="cy_boot" value="cy_boot_v5_80" />
+      <Data key="cy_boot" value="cy_boot_v6_0" />
       <Data key="Em_EEPROM_Dynamic" value="Em_EEPROM_Dynamic_v2_20" />
       <Data key="LIN_Dynamic" value="LIN_Dynamic_v5_0" />
     </Group>
   </Group>
   <Data key="DataVersionKey" value="2" />
   <Group key="DMA">
-    <Data key="8b909253-8345-4329-923c-e998391fe4c8" value="3" />
-    <Data key="82aef2f5-e888-4817-89f3-2ab886f47c65" value="3" />
+    <Data key="8b909253-8345-4329-923c-e998391fe4c8" value="7" />
+    <Data key="82aef2f5-e888-4817-89f3-2ab886f47c65" value="0" />
+    <Data key="719d32b8-eccd-4c87-b538-d66eed4a4a05" value="3" />
+    <Data key="792afbba-ed95-40c4-9ab4-698dfadcdc8b" value="0" />
     <Data key="c0065ef1-1b4a-4c27-bd7a-de833fd58b42/65e02280-1265-4427-8c57-372cc4ad3f0e" value="0" />
     <Data key="c0065ef1-1b4a-4c27-bd7a-de833fd58b42/09221e01-4fc0-48fd-8cd5-4ac8043cee0b" value="0" />
     <Data key="c0065ef1-1b4a-4c27-bd7a-de833fd58b42/29822253-f21c-49b7-aa58-0d8c2ac4d26a" value="0" />
@@ -307,12 +382,17 @@
   </Group>
   <Group key="DWRInstGuidMapping">
     <Group key="Clock">
+      <Data key="3e1f7e38-1f21-4b05-a75d-6a3af31b18a9" value="deb_clk" />
       <Data key="4bab0f18-5135-4bd9-856f-060dab5b2a44" value="i2s_mclk_clk" />
+      <Data key="032b2d86-90f0-4f52-8fc6-11b9c75cca59" value="Clock_1" />
       <Data key="3700d4ea-40b4-414f-acb1-c0725a7ee8f9" value="i2s_clk" />
+      <Data key="c0065ef1-1b4a-4c27-bd7a-de833fd58b42/05cf1099-aac9-4226-a133-1bc328368208" value="USBFS_USB_BUS_CLOCK" />
     </Group>
     <Group key="DMA">
       <Data key="8b909253-8345-4329-923c-e998391fe4c8" value="DMA_Sync" />
       <Data key="82aef2f5-e888-4817-89f3-2ab886f47c65" value="DMA_I2S" />
+      <Data key="719d32b8-eccd-4c87-b538-d66eed4a4a05" value="DMA_USB" />
+      <Data key="792afbba-ed95-40c4-9ab4-698dfadcdc8b" value="DMA_BS" />
       <Data key="c0065ef1-1b4a-4c27-bd7a-de833fd58b42/65e02280-1265-4427-8c57-372cc4ad3f0e" value="USBFS_ep6" />
       <Data key="c0065ef1-1b4a-4c27-bd7a-de833fd58b42/09221e01-4fc0-48fd-8cd5-4ac8043cee0b" value="USBFS_ep2" />
       <Data key="c0065ef1-1b4a-4c27-bd7a-de833fd58b42/29822253-f21c-49b7-aa58-0d8c2ac4d26a" value="USBFS_ep1" />
@@ -321,6 +401,7 @@
     </Group>
     <Group key="Interrupt">
       <Data key="3b229842-b290-4b7c-8bcb-67befa05cf93" value="sof_isr" />
+      <Data key="7abff1ca-4dfc-4db4-8cb0-95bc7dea167c" value="bs0_isr" />
       <Data key="149283c3-f3c2-4697-a70b-18e8e2cae5f8" value="mute_isr" />
       <Data key="c0065ef1-1b4a-4c27-bd7a-de833fd58b42/8c70c28a-acdf-4af1-b803-ce0c58edb918" value="USBFS_ep_3" />
       <Data key="c0065ef1-1b4a-4c27-bd7a-de833fd58b42/13a8975c-7fb7-4bb9-91f3-189a6b7c1d86" value="USBFS_ep_1" />
@@ -343,6 +424,7 @@
       <Data key="c78c2a42-ec16-4eee-88c8-00ad752a2991/d91ea660-bc91-4817-b29b-2fe86c305500" value="USBFS_arb_int" />
       <Data key="c78c2a42-ec16-4eee-88c8-00ad752a2991/dc6da32b-30f7-48b3-b8a1-dbf0214d8c83" value="USBFS_dp_int" />
       <Data key="c78c2a42-ec16-4eee-88c8-00ad752a2991/ef9224ec-f8a6-4df0-8a49-e09ce75cefa7" value="USBFS_ep_0" />
+      <Data key="e011bd69-c737-4e31-88d9-c7fbb1cd21e1" value="bs1_isr" />
       <Data key="e94e403e-1269-4d47-adb2-f4f92b23c6a2" value="boot_isr" />
       <Data key="fe5781ba-6c33-4da1-bdfa-18fc952146b8" value="i2s_isr" />
     </Group>
@@ -3470,7 +3552,7 @@
     <Group key="fe5781ba-6c33-4da1-bdfa-18fc952146b8">
       <Group key="CortexM3">
         <Data key="Assigned" value="True" />
-        <Data key="Priority" value="0" />
+        <Data key="Priority" value="4" />
         <Data key="Vector" value="-1" />
       </Group>
     </Group>

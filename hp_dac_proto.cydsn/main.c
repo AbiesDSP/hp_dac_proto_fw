@@ -1,4 +1,6 @@
 #include "project.h"
+#include "audio/audio_out.h"
+#include "usb/usb.h"
 #include <math.h>
 
 #define ever    (;;)
@@ -26,7 +28,6 @@ uint8_t sync_dma_td[SYNC_TD_COUNT];
 volatile uint16_t sample_rate_buf[SAMPLE_RATE_BUF_SIZE];
 
 CY_ISR_PROTO(mute_button);
-CY_ISR_PROTO(i2s_dma_done_isr);
 CY_ISR_PROTO(bootload_isr);
 CY_ISR_PROTO(sync_isr);
 
@@ -39,51 +40,48 @@ volatile uint8_t readflag = 0;
 
 volatile uint8_t bugflag = 0;
 volatile uint32_t usbbufsize = 0;
+volatile uint32_t waitctr = 0;
+volatile int bs0flag = 0, bs1flag = 0;
 
 int main(void)
 {
-    // Enable mute button ISR
+    CyGlobalIntEnable;
+//    // Enable mute button ISR
     mute_isr_StartEx(mute_button);
     mute_Write(mute_toggle);
-    uint32_t z = 0;
+    uint8_t usb_dma_ch, bs_dma_ch, i2s_dma_ch;
+    usb_dma_ch = DMA_USB_DmaInitialize(1u, 1u, HI16(CYDEV_SRAM_BASE), HI16(CYDEV_PERIPH_BASE));
+    bs_dma_ch = DMA_BS_DmaInitialize(1u, 1u, HI16(CYDEV_PERIPH_BASE), HI16(CYDEV_SRAM_BASE));
+    i2s_dma_ch = DMA_I2S_DmaInitialize(1u, 1u, HI16(CYDEV_SRAM_BASE), HI16(CYDEV_PERIPH_BASE));
     
-    i2s_isr_StartEx(i2s_dma_done_isr);
-    I2S_Start();
-    dma_tx_config();
-    dma_sync_config();
+    audio_out_config config = {
+        .usb_dma_ch = usb_dma_ch,
+        .usb_dma_termout_en = DMA_USB__TD_TERMOUT_EN,
+        .bs_dma_ch = bs_dma_ch,
+        .bs_dma_termout_en = DMA_BS__TD_TERMOUT_EN,
+        .i2s_dma_ch = i2s_dma_ch,
+        .i2s_dma_termout_en = DMA_I2S__TD_TERMOUT_EN,
+        .usb_buf = usb_out_buf,
+        .bs_fifo_in = byte_swap_fifo_in_ptr,
+        .bs_fifo_out = byte_swap_fifo_out_ptr
+    };
+    
+    i2s_isr_StartEx(i2s_done_isr);
+    audio_out_init(config);
+    audio_out_start();
+    
+   dma_sync_config();
     
     boot_isr_StartEx(bootload_isr);
     sof_isr_StartEx(sync_isr);
-    
-    CyGlobalIntEnable;
-    
-    // Start and enumerate USB.
-    USBFS_Start(USBFS_AUDIO_DEVICE, USBFS_DWR_VDDD_OPERATION);
-    while (0u == USBFS_GetConfiguration());
+
+    usb_start();
     
     for ever
     {
-        // This is to measure differences between usb and local clock.
-        if (mean_flag) {
-            mean_flag = 0;
-            mean = 0;
-            for (z = 0; z < SAMPLE_RATE_BUF_SIZE; z++) {
-                mean += sample_rate_buf[z];
-            }
-            // Format feedback as 
-            sample_rate_feedback = mean / 6;
-            
-            // Oversampling. Preserve decimal.
-            mean >>= 4;
-            for (z = 0; z < SAMPLE_RATE_BUF_SIZE; z++) {
-                sample_rate_buf[z] = 0;
-            }
-            CyDmaChEnable(sync_dma_ch, SYNC_ENABLE_PRESERVE_TD);
-        }
-        
         // USB Handler
         if (USBFS_GetConfiguration()) {
-            service_usb();
+            usb_service();
         }
     }
 }
@@ -104,26 +102,6 @@ static void dma_sync_config(void)
 CY_ISR(mute_button)
 {
     mute_Write(mute_toggle ^= 1);
-}
-
-CY_ISR(i2s_dma_done_isr)
-{
-    uint32_t added;
-    
-    added = out_usb_count - out_usb_shadow;
-    out_level += added;
-    out_usb_shadow = out_usb_count;
-    
-    // Underflow
-    if (out_level <= QUAR) {
-//        audio_stop();
-    } else {
-        out_level -= I2S_DMA_TRANSFER_SIZE;
-    }
-    // Overflow
-    if (out_level > (AUDIO_BUF_SIZE + 6)) {
-        audio_stop();
-    }
 }
 
 CY_ISR(bootload_isr)
