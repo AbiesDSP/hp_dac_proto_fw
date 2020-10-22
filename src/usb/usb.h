@@ -5,10 +5,10 @@
 
 #define USBFS_AUDIO_DEVICE  (0u)
 #define AUDIO_INTERFACE     (1u)
-#define AUDIO_OUT_EP    (1u)
-#define AUDIO_IN_EP     (2u)
-#define AUDIO_FB_EP     (3u)
-#define USB_BUF_SIZE    (294u)
+#define AUDIO_OUT_EP        (1u)
+#define AUDIO_IN_EP         (2u)
+#define AUDIO_FB_EP         (3u)
+#define USB_BUF_SIZE        (294u)
 
 #define USB_STS_INACTIVE    (0x00u)
 #define USB_STS_INIT        (0x01u)
@@ -33,10 +33,12 @@ extern uint8_t usb_alt_setting[USB_NO_STREAM_IFACE];
 extern volatile uint8_t fb_update_flag;
 
 void usb_start(void);
+// Called in the SOF ISR. Put this in cyapicallbacks.
 void usb_sof(void);
+// Called every 128 samples when feedback ep is updated. Put this in cyapicallbacks.
 void usb_feedback(void);
+// Call in main loop to handle usb stuff
 void usb_service(void);
-void usb_fs_change(void);
 
 #endif
     
