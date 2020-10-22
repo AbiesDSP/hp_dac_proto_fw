@@ -1,6 +1,7 @@
 #include "audio/audio_out.h"
 #include "sync/sync.h"
 #include "CyDmac.h"
+#include "byte_swap_defs.h"
 #include "USBFS.h"
 #include "I2S.h"
 #include "mute.h"
@@ -61,6 +62,8 @@ void audio_out_init(audio_out_config config)
     audio_out_buffer_size = 0;
     audio_out_status = 0;
     audio_out_update_flag = 0u;
+    byte_swap_DP_F0_SET_LEVEL_MID;
+    byte_swap_DP_F1_SET_LEVEL_MID;
     I2S_TX_AUX_CONTROL_REG = I2S_TX_AUX_CONTROL_REG | FIFO_HALF_FULL_MASK;
 }
 
