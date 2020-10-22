@@ -3,6 +3,8 @@
 #include "sync/sync.h"
 #include "project.h"
 
+#define USE_HYST    (1u)
+
 #define FB_MIN  (784384)
 #define FB_MAX  (788480)
 #define FB_HYST_DEAD    (0x00)
@@ -44,38 +46,40 @@ void usb_sof(void)
     // // Old samples value. (default)
      new_fb = ((uint16_t)fb_data[2] << 8) | fb_data[1];
     
-    // if (fb_updated == 0) {
+    #if USE_HYST
+    if (fb_updated == 0) {
         // We are in the deadband.
-    //     if (fb_hyster == FB_HYST_DEAD) {
-    //         // start decreasing or increasing when we're out of range.
-    //         if (size > (AUDIO_OUT_ACTIVE_LIMIT + USB_FB_RANGE)) {
-    //             new_fb -= USB_FB_INC;
-    //             fb_hyster = FB_HYST_DEC;
-    //         } else if (size < (AUDIO_OUT_ACTIVE_LIMIT - USB_FB_RANGE)) {
-    //             new_fb += USB_FB_INC;
-    //             fb_hyster = FB_HYST_INC;
-    //         }
-    //     } else if (fb_hyster == FB_HYST_INC) {
-    //         // Stop increasing when we hit half.
-    //         if (size <= AUDIO_OUT_ACTIVE_LIMIT) {
-    //             fb_hyster = FB_HYST_DEAD;
-    //         } else {
-    //             // Stay increasing.
-    //             new_fb += USB_FB_INC;
-    //         }
-    //     } else if (fb_hyster == FB_HYST_DEC) {
-    //         if (size >= AUDIO_OUT_ACTIVE_LIMIT) {
-    //             fb_hyster = FB_HYST_DEAD;
-    //         } else {
-    //             new_fb -= USB_FB_INC;
-    //         }
-    //     } else {
-    //         // error.
-    //         fb_hyster = FB_HYST_DEAD;
-    //     }
-    //     sample_rate_feedback = new_fb;
-    //     fb_updated = 1;
-    // } 
+        if (fb_hyster == FB_HYST_DEAD) {
+            // start decreasing or increasing when we're out of range.
+            if (size > (AUDIO_OUT_ACTIVE_LIMIT + USB_FB_RANGE)) {
+                new_fb -= USB_FB_INC;
+                fb_hyster = FB_HYST_DEC;
+            } else if (size < (AUDIO_OUT_ACTIVE_LIMIT - USB_FB_RANGE)) {
+                new_fb += USB_FB_INC;
+                fb_hyster = FB_HYST_INC;
+            }
+        } else if (fb_hyster == FB_HYST_INC) {
+            // Stop increasing when we hit half.
+            if (size <= AUDIO_OUT_ACTIVE_LIMIT) {
+                fb_hyster = FB_HYST_DEAD;
+            } else {
+                // Stay increasing.
+                new_fb += USB_FB_INC;
+            }
+        } else if (fb_hyster == FB_HYST_DEC) {
+            if (size >= AUDIO_OUT_ACTIVE_LIMIT) {
+                fb_hyster = FB_HYST_DEAD;
+            } else {
+                new_fb -= USB_FB_INC;
+            }
+        } else {
+            // error.
+            fb_hyster = FB_HYST_DEAD;
+        }
+        sample_rate_feedback = new_fb;
+        fb_updated = 1;
+    }
+    #else
     if (fb_updated == 0) {
         if (size < (AUDIO_OUT_ACTIVE_LIMIT - USB_FB_RANGE)) {
 //            new_fb = sync_new_feedback >> 8;
@@ -87,6 +91,7 @@ void usb_sof(void)
             fb_updated = 1;
         }
     }
+    #endif
 
     fb_data[2] = HI8(new_fb);
     fb_data[1] = LO8(new_fb);
