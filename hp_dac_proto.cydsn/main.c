@@ -117,7 +117,7 @@ int main(void)
     
     boot_isr_StartEx(bootload_isr);
 
-    sync_init();
+//    sync_init();
     usb_start();
     
     for ever
