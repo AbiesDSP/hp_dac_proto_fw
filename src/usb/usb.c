@@ -40,11 +40,11 @@ void usb_sof(void)
     if (fb_updated == 0) {
         if (size < (AUDIO_OUT_ACTIVE_LIMIT - 288u)) {
 //            new_fb = sync_new_feedback >> 8;
-            new_fb += 0x08;
+            new_fb += USB_FB_INC;
             fb_updated = 1;
         } else if (size > (AUDIO_OUT_ACTIVE_LIMIT + 288u)) {
 //            new_fb = sync_new_feedback >> 8;
-            new_fb -= 0x08;
+            new_fb -= USB_FB_INC;
             fb_updated = 1;
         }
     }
