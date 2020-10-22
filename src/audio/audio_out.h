@@ -10,8 +10,8 @@
 #define AUDIO_OUT_N_TD          (32u)
 #define AUDIO_OUT_EP            (1u)
 
-#define AUDIO_OUT_LOW_LIMIT     (294u)
-#define AUDIO_OUT_HIGH_LIMIT    (4314u)
+#define AUDIO_OUT_LOW_LIMIT     (588u)
+#define AUDIO_OUT_HIGH_LIMIT    (4020u)
 #define AUDIO_OUT_ACTIVE_LIMIT  (2304u)
 #define AUDIO_OUT_FB_LOW        (1152u)
 #define AUDIO_OUT_FB_HIGH       (2304u)
@@ -22,11 +22,10 @@
 #define AUDIO_OUT_STS_RESET     (0x08u)
 
 extern uint8_t audio_out_buf[AUDIO_OUT_BUF_SIZE];
-// extern uint16_t audio_out_write_index;
-// extern volatile uint16_t audio_out_read_index;
 extern volatile uint16_t audio_out_buffer_size;
-// extern volatile uint16_t audio_out_shadow;
 extern volatile uint8_t audio_out_status;
+
+extern volatile uint8_t audio_out_update_flag;
 
 typedef struct {
     uint8_t usb_dma_ch;

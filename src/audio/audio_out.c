@@ -1,4 +1,5 @@
 #include "audio/audio_out.h"
+#include "sync/sync.h"
 #include "CyDmac.h"
 #include "USBFS.h"
 #include "I2S.h"
@@ -8,11 +9,10 @@
 #define FIFO_HALF_FULL_MASK (0x0C)
 
 uint8_t audio_out_buf[AUDIO_OUT_BUF_SIZE];
-// uint16_t audio_out_write_index;
-// volatile uint16_t audio_out_read_index;
 volatile uint16_t audio_out_buffer_size;
-// volatile uint16_t audio_out_shadow;
 volatile uint8_t audio_out_status;
+
+volatile uint8_t audio_out_update_flag;
 
 static uint8_t usb_dma_td[1];
 static uint8_t bs_dma_td[AUDIO_OUT_N_TD];
@@ -58,11 +58,9 @@ void audio_out_init(audio_out_config config)
         audio_out_buf[i] = 0;
     }
     // Initialize buffer management.
-    // audio_out_write_index = 0;
-    // audio_out_read_index = 0;
     audio_out_buffer_size = 0;
-    // audio_out_shadow = 0;
     audio_out_status = 0;
+    audio_out_update_flag = 0u;
     I2S_TX_AUX_CONTROL_REG = I2S_TX_AUX_CONTROL_REG | FIFO_HALF_FULL_MASK;
 }
 
@@ -103,6 +101,7 @@ void audio_out_update(void)
     if ((audio_out_status & AUDIO_OUT_STS_ACTIVE) == 0u && buf_size >= AUDIO_OUT_ACTIVE_LIMIT) {
         audio_out_enable();
     }
+    audio_out_update_flag = 1u;
 }
 
 void audio_out_enable(void)
@@ -111,8 +110,9 @@ void audio_out_enable(void)
     if ((audio_out_status & AUDIO_OUT_STS_ACTIVE) == 0u) {
         audio_out_status |= AUDIO_OUT_STS_ACTIVE;
         mute_Write(1u);
-        I2S_EnableTx();
         CyDmaChEnable(i2s_dma_ch, 1u);
+        sync_enable();
+        I2S_EnableTx();
     }
 }
 
@@ -120,6 +120,7 @@ void audio_out_disable(void)
 {
     // Only disable if active
     if (audio_out_status & AUDIO_OUT_STS_ACTIVE) {
+        sync_disable();
         I2S_DisableTx();
         CyDelayUs(20);  // Delays in isr? That's a paddlin.
         CyDmaChDisable(i2s_dma_ch);

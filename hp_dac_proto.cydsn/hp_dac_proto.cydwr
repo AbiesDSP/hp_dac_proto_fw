@@ -435,11 +435,13 @@
       <Data key="62b12a5c-e716-42ec-9e3c-338460c71a76/618a72fc-5ddd-4df5-958f-a3d55102db42" value="USBFS_Dp" />
       <Data key="0412e7a3-7bb2-4490-8a7d-0675b098c5ba" value="i2s_lrck" />
       <Data key="475d3cbe-adf7-446a-af68-da51fff0bbf3" value="mute" />
+      <Data key="1425177d-0d0e-4468-8bcc-e638e5509a9b" value="rx" />
       <Data key="c8e19693-67d9-4f29-a02f-cee5400c223a" value="i2s_sck" />
       <Data key="c0065ef1-1b4a-4c27-bd7a-de833fd58b42/8b77a6c4-10a0-4390-971c-672353e2a49c" value="USBFS_Dm" />
       <Data key="c0065ef1-1b4a-4c27-bd7a-de833fd58b42/618a72fc-5ddd-4df5-958f-a3d55102db42" value="USBFS_Dp" />
       <Data key="c78c2a42-ec16-4eee-88c8-00ad752a2991/8b77a6c4-10a0-4390-971c-672353e2a49c" value="USBFS_Dm" />
       <Data key="c78c2a42-ec16-4eee-88c8-00ad752a2991/618a72fc-5ddd-4df5-958f-a3d55102db42" value="USBFS_Dp" />
+      <Data key="d21997b1-c340-4589-b247-8df6166c7b2e" value="tx" />
       <Data key="e851a3b9-efb8-48be-bbb8-b303b216c393" value="i2s_mclk" />
       <Data key="ed092b9b-d398-4703-be89-cebf998501f6" value="i2s_sdo" />
     </Group>
@@ -3588,6 +3590,11 @@
         <Data key="Port Format" value="12,3" />
       </Group>
     </Group>
+    <Group key="1425177d-0d0e-4468-8bcc-e638e5509a9b">
+      <Group key="0">
+        <Data key="Port Format" value="12,4" />
+      </Group>
+    </Group>
     <Group key="c8e19693-67d9-4f29-a02f-cee5400c223a">
       <Group key="0">
         <Data key="Port Format" value="2,6" />
@@ -3611,6 +3618,11 @@
     <Group key="c78c2a42-ec16-4eee-88c8-00ad752a2991/618a72fc-5ddd-4df5-958f-a3d55102db42">
       <Group key="0">
         <Data key="Port Format" value="15,6" />
+      </Group>
+    </Group>
+    <Group key="d21997b1-c340-4589-b247-8df6166c7b2e">
+      <Group key="0">
+        <Data key="Port Format" value="12,5" />
       </Group>
     </Group>
     <Group key="e851a3b9-efb8-48be-bbb8-b303b216c393">
