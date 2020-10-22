@@ -13,8 +13,8 @@
 
 const uint16_t fb_default = 0x0C00;
 
-uint8_t fb_data[3] = {0x00, 0x00, 0x0C};
-uint8_t fb_updated = 0;
+volatile uint8_t fb_data[3] = {0x00, 0x00, 0x0C};
+volatile uint8_t fb_updated = 0;
 uint32_t sample_rate_feedback = 0;
 
 uint8_t usb_out_buf[USB_BUF_SIZE];
@@ -140,7 +140,7 @@ void usb_service(void)
             if (usb_alt_setting[USB_OUT_IFACE_INDEX] != USB_ALT_ZEROBW) {
                 USBFS_ReadOutEP(AUDIO_OUT_EP, &usb_out_buf[0], USB_BUF_SIZE);
                 USBFS_EnableOutEP(AUDIO_OUT_EP);
-                USBFS_LoadInEP(AUDIO_FB_EP, fb_data, 3);
+                USBFS_LoadInEP(AUDIO_FB_EP, (const uint8_t*)fb_data, 3);
                 USBFS_LoadInEP(AUDIO_FB_EP, USBFS_NULL, 3);
             }
             fb_data[2] = 0x0C;
