@@ -19,7 +19,7 @@
 #define AUDIO_OUT_STS_RESET     (0x08u)
 
 #define AUDIO_OUT_EP            (1u)
-#define USB_FB_INC              (0x10)
+#define USB_FB_INC              (0x08u)
 #define USB_FB_RANGE            (AUDIO_OUT_TRANSFER_SIZE)
 
 extern uint8_t audio_out_buf[AUDIO_OUT_BUF_SIZE];
