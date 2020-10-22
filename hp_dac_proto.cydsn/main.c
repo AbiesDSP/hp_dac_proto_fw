@@ -110,6 +110,7 @@ int main(void)
     rx_spy_start(COMM_DELIM, RX_TRANSFER_SIZE);
     comm_start(comm_main);
     
+    bs_isr_StartEx(bs_done_isr);
     i2s_isr_StartEx(i2s_done_isr);
     audio_out_init(config);
     audio_out_start();

@@ -5,10 +5,10 @@
 
 #define USBFS_AUDIO_DEVICE  (0u)
 #define AUDIO_INTERFACE     (1u)
-#define AUDIO_OUT_EP    (1u)
-#define AUDIO_IN_EP     (2u)
-#define AUDIO_FB_EP     (3u)
-#define USB_BUF_SIZE    (294u)
+#define AUDIO_OUT_EP        (1u)
+#define AUDIO_IN_EP         (2u)
+#define AUDIO_FB_EP         (3u)
+#define USB_BUF_SIZE        (294u)
 
 #define USB_STS_INACTIVE    (0x00u)
 #define USB_STS_INIT        (0x01u)
