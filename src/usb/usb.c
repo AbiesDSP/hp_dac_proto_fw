@@ -5,8 +5,7 @@
 
 #define USE_HYST    (0u)
 
-#define FB_MIN  (784384)
-#define FB_MAX  (788480)
+#define FB_NOM          (3072u)
 #define FB_HYST_DEAD    (0x00)
 #define FB_HYST_INC     (0x01)
 #define FB_HYST_DEC     (0x02)
@@ -35,15 +34,15 @@ void usb_start(void)
 
 void usb_sof(void)
 {
-    uint16_t new_fb = 0, size = 0;
-    uint8_t int_status = 0;
-
-    int_status = CyEnterCriticalSection();
-    size = audio_out_buffer_size;
-    CyExitCriticalSection(int_status);
-    
-    // // Old samples value. (default)
-     new_fb = ((uint16_t)fb_data[2] << 8) | fb_data[1];
+//    uint16_t new_fb = 0, size = 0;
+//    uint8_t int_status = 0;
+//
+//    int_status = CyEnterCriticalSection();
+//    size = audio_out_buffer_size;
+//    CyExitCriticalSection(int_status);
+//    
+//    // // Old samples value. (default)
+//     new_fb = ((uint16_t)fb_data[2] << 8) | fb_data[1];
     
     // Idk. This doesn't work as well...but it seems like it should be better.
     #if USE_HYST
@@ -85,34 +84,54 @@ void usb_sof(void)
     }
     #else
     // Determine the next feeback value. If we're outside the range, correct it.
-    if (fb_updated == 0 && audio_out_active) {
+//    if (fb_updated == 0 && audio_out_active) {
+//        if (size < (AUDIO_OUT_ACTIVE_LIMIT - USB_FB_RANGE)) {
+////            new_fb = sync_new_feedback >> 8;
+//            new_fb += USB_FB_INC;
+//            fb_updated = 1;
+//        } else if (size > (AUDIO_OUT_ACTIVE_LIMIT + USB_FB_RANGE)) {
+////            new_fb = sync_new_feedback >> 8;
+//            new_fb -= USB_FB_INC;
+//            fb_updated = 1;
+//        }
+//    }
+    #endif
+    // Load new feedback into ep
+//    fb_data[2] = HI8(new_fb);
+//    fb_data[1] = LO8(new_fb);
+//    if ((USBFS_GetEPState(AUDIO_FB_EP) == USBFS_IN_BUFFER_EMPTY)) {
+//        USBFS_LoadInEP(AUDIO_FB_EP, USBFS_NULL, 3);
+//    }
+}
+
+// This is called whenever the host requests feedback. Not sure what we need to do here.
+void usb_feedback(void)
+{
+    uint16_t new_fb = 0, size = 0;
+    uint8_t int_status = 0;
+
+    int_status = CyEnterCriticalSection();
+    size = audio_out_buffer_size;
+    CyExitCriticalSection(int_status);
+    
+    // // Old samples value. (default)
+//     new_fb = ((uint16_t)fb_data[2] << 8) | fb_data[1];
+    new_fb = fb_default;
+    // Back to default.
+    // Determine the next feeback value. If we're outside the range, correct it.
+    if (audio_out_active) {
         if (size < (AUDIO_OUT_ACTIVE_LIMIT - USB_FB_RANGE)) {
-//            new_fb = sync_new_feedback >> 8;
             new_fb += USB_FB_INC;
-            fb_updated = 1;
         } else if (size > (AUDIO_OUT_ACTIVE_LIMIT + USB_FB_RANGE)) {
-//            new_fb = sync_new_feedback >> 8;
             new_fb -= USB_FB_INC;
-            fb_updated = 1;
         }
     }
-    #endif
     // Load new feedback into ep
     fb_data[2] = HI8(new_fb);
     fb_data[1] = LO8(new_fb);
     if ((USBFS_GetEPState(AUDIO_FB_EP) == USBFS_IN_BUFFER_EMPTY)) {
         USBFS_LoadInEP(AUDIO_FB_EP, USBFS_NULL, 3);
     }
-}
-
-// This is called whenever the host requests feedback. Not sure what we need to do here.
-void usb_feedback(void)
-{
-    // Back to default.
-    fb_data[2] = 0x0C;
-    fb_data[1] = 0x00;
-    fb_data[0] = 0x00;
-    fb_updated = 0;
     // Indicator to application. use as needed.
     fb_update_flag = 1;
 }
