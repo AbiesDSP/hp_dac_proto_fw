@@ -45,6 +45,7 @@ void usb_sof(void)
     // // Old samples value. (default)
      new_fb = ((uint16_t)fb_data[2] << 8) | fb_data[1];
     
+    // Idk. This doesn't work as well...but it seems like it should be better.
     #if USE_HYST
     static uint8_t fb_hyster = FB_HYST_DEAD;
     if (fb_updated == 0 && audio_out_active) {
@@ -83,6 +84,7 @@ void usb_sof(void)
         sample_rate_feedback = new_fb;
     }
     #else
+    // Determine the next feeback value. If we're outside the range, correct it.
     if (fb_updated == 0 && audio_out_active) {
         if (size < (AUDIO_OUT_ACTIVE_LIMIT - USB_FB_RANGE)) {
 //            new_fb = sync_new_feedback >> 8;
@@ -95,10 +97,9 @@ void usb_sof(void)
         }
     }
     #endif
-
+    // Load new feedback into ep
     fb_data[2] = HI8(new_fb);
     fb_data[1] = LO8(new_fb);
-
     if ((USBFS_GetEPState(AUDIO_FB_EP) == USBFS_IN_BUFFER_EMPTY)) {
         USBFS_LoadInEP(AUDIO_FB_EP, USBFS_NULL, 3);
     }
@@ -107,13 +108,15 @@ void usb_sof(void)
 // This is called whenever the host requests feedback. Not sure what we need to do here.
 void usb_feedback(void)
 {
+    // Back to default.
     fb_data[2] = 0x0C;
     fb_data[1] = 0x00;
     fb_data[0] = 0x00;
     fb_updated = 0;
+    // Indicator to application. use as needed.
     fb_update_flag = 1;
 }
-
+// Fun fun usb stuff.
 void usb_service(void)
 {
     uint16_t i;
@@ -148,12 +151,5 @@ void usb_service(void)
             usb_alt_setting[USB_IN_IFACE_INDEX] = USBFS_GetInterfaceSetting(2);
             // Audio in stuff.
         }
-    }
-}
-
-void usb_fs_change(void)
-{
-    if ((USBFS_TRANS_STATE_IDLE == USBFS_transferState) && USBFS_frequencyChanged) {
-
     }
 }

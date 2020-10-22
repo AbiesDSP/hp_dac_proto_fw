@@ -4,54 +4,37 @@
 #include "sync/sync.h"
 #include "comm/comm.h"
 
+#define ENABLE_BOOTLOAD (0u)
+
 #define ever    (;;)
 
-#define TEST_BUF_SIZE       (8u)
 #define RX_BUF_SIZE         (1024u)
 #define RX_TRANSFER_SIZE    (255u)
 #define TX_BUF_SIZE         (1024u)
 #define TX_TRANSFER_SIZE    (255u)
 
-/* Each audio sample needs to be converted into a stream of bytes like so:
- * L-MSB, L-1, L-LSB, R-MSB, R-1, R-LSB.
- * I2S DMA request is on FIFO not-full, so we just need to pack all the bytes into it.
- * don't worry about dividing it up into samples, the I2S component figures it out.
- *
- * 
- *
- */
-CY_ISR_PROTO(mute_button);
-CY_ISR_PROTO(bootload_isr);
-CY_ISR_PROTO(sync_isr);
-
 volatile uint8_t mute_toggle = 1;
-volatile uint8_t sync_flag;
-volatile uint32_t mean = 0;
-volatile uint8_t mean_flag = 0;
-volatile uint16_t usb_read_size = 0;
-volatile uint8_t readflag = 0;
-
-volatile uint8_t bugflag = 0;
-volatile uint32_t usbbufsize = 0;
-volatile uint32_t waitctr = 0;
-volatile int bs0flag = 0, bs1flag = 0;
-
 volatile comm comm_main;
 
+CY_ISR_PROTO(mute_button);
+CY_ISR_PROTO(bootload_isr);
 CY_ISR_PROTO(txdoneisr);
 CY_ISR_PROTO(spyisr);
 
 int main(void)
 {
     CyGlobalIntEnable;
-//    // Enable mute button ISR
+    // Enable mute button ISR. Configuring audio will automatically unmute as well.
     mute_isr_StartEx(mute_button);
     mute_Write(mute_toggle);
+    
+    // DMA Channels for audio out process.
     uint8_t usb_dma_ch, bs_dma_ch, i2s_dma_ch;
     usb_dma_ch = DMA_USB_DmaInitialize(1u, 1u, HI16(CYDEV_SRAM_BASE), HI16(CYDEV_PERIPH_BASE));
     bs_dma_ch = DMA_BS_DmaInitialize(1u, 1u, HI16(CYDEV_PERIPH_BASE), HI16(CYDEV_SRAM_BASE));
     i2s_dma_ch = DMA_I2S_DmaInitialize(1u, 1u, HI16(CYDEV_SRAM_BASE), HI16(CYDEV_PERIPH_BASE));
     
+    // Buffer, dma, and register setup constants.
     audio_out_config config = {
         .usb_dma_ch = usb_dma_ch,
         .usb_dma_termout_en = DMA_USB__TD_TERMOUT_EN,
@@ -68,11 +51,11 @@ int main(void)
     uint8_t rx_buf[RX_BUF_SIZE];
     uint8_t tx_buf[TX_BUF_SIZE];
 
-    // All dma transfers are 1 byte burst and 1 byte per request.
+    // Comm dma initialization.
     uint8_t uart_tx_dma_ch = DMATxUart_DmaInitialize(1u, 1u, HI16(CYDEV_SRAM_BASE), HI16(CYDEV_PERIPH_BASE));
     uint8_t uart_rx_dma_ch = DMARxUART_DmaInitialize(1u, 1u, HI16(CYDEV_PERIPH_BASE), HI16(CYDEV_PERIPH_BASE));
     uint8_t spy_dma_ch = DMASpy_DmaInitialize(1u, 1u, HI16(CYDEV_PERIPH_BASE), HI16(CYDEV_SRAM_BASE));
-    
+    // Comm configuration settings.
     comm_config uart_config = {
         .uart_tx_ch = uart_tx_dma_ch,
         .uart_tx_n_td = COMM_MAX_TX_TD,
@@ -95,7 +78,7 @@ int main(void)
     };
     
     uint8_t int_status;
-    uint16_t buf_size;
+    uint16_t log_dat;
     uint16_t read_ptr = 0;
 //    uint8_t error = 0;
 //    uint8_t rx_status = 0;
@@ -129,15 +112,21 @@ int main(void)
         // Feedback was updated. Send telemetry.
         if (fb_update_flag && audio_out_active) {
             fb_update_flag = 0;
+            // Audio out buffer size is modified in an isr,
+            // so we'll just grab a quick copy
             int_status = CyEnterCriticalSection();
-            buf_size = audio_out_buffer_size;
+            log_dat = audio_out_buffer_size;
             CyExitCriticalSection(int_status);
-            comm_send(comm_main, (uint8_t*)&buf_size, sizeof(buf_size));
+            // Send the data over the UART
+            comm_send(comm_main, (uint8_t*)&log_dat, sizeof(log_dat));
         }
         /* Byte swap transfer finished. Ready to process data.
          * audio_out_shadow is how many bytes need processing.
          * When you remove data update the read ptr and shadow
-         * to account for processed bytes.*/
+         * to account for processed bytes.
+         * Whatever operation you perform must finish processing the data
+         * within 1ms or we'll have an overrun issue.
+         */
         if (audio_out_update_flag) {
             audio_out_update_flag = 0;
             // Like this.
@@ -157,7 +146,9 @@ CY_ISR(mute_button)
 
 CY_ISR(bootload_isr)
 {
-//    Bootloadable_Load();
+    #if ENABLE_BOOTLOAD
+    Bootloadable_Load();
+    #endif
 }
 
 // Packet finished transmitting isr.
@@ -167,7 +158,7 @@ CY_ISR(txdoneisr)
 }
 
 // Delim, complete transfer, or flush isr.
-CY_ISR_PROTO(spyisr)
+CY_ISR(spyisr)
 {   
     comm_rx_isr(comm_main);
 }

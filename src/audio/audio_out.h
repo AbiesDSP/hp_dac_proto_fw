@@ -44,10 +44,12 @@ typedef struct {
 
 void audio_out_init(audio_out_config config);
 void audio_out_start(void);
+// Gets called on audio out ep isr. Put in cyapicallbacks.h
 void audio_out_update(void);
+// Start and stop audio playback and I2S.
 void audio_out_enable(void);
 void audio_out_disable(void);
-
+// ISRs for these peripherals.
 CY_ISR_PROTO(bs_done_isr);
 CY_ISR_PROTO(i2s_done_isr);
 
