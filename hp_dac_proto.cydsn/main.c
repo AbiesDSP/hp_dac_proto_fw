@@ -4,8 +4,6 @@
 #include "sync/sync.h"
 #include "comm/comm.h"
 
-#include <math.h>
-
 #define ever    (;;)
 
 #define TEST_BUF_SIZE       (8u)
@@ -157,10 +155,4 @@ CY_ISR(txdoneisr)
 CY_ISR_PROTO(spyisr)
 {   
     comm_rx_isr(comm_main);
-}
-
-CY_ISR(sync_isr)
-{
-    mean_flag = 1;
-    CyDmaChDisable(sync_dma_ch);
 }
