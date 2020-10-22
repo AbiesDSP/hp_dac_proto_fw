@@ -20,9 +20,10 @@
 
 #define AUDIO_OUT_EP            (1u)
 #define USB_FB_INC      (0x08)
-#define USB_FB_RANGE    (2 * AUDIO_OUT_TRANSFER_SIZE)
+#define USB_FB_RANGE    (AUDIO_OUT_TRANSFER_SIZE)
 
 extern uint8_t audio_out_buf[AUDIO_OUT_BUF_SIZE];
+extern volatile uint16_t audio_out_shadow;
 extern volatile uint16_t audio_out_buffer_size;
 extern volatile uint8_t audio_out_active;
 extern volatile uint8_t audio_out_status;
@@ -47,6 +48,7 @@ void audio_out_update(void);
 void audio_out_enable(void);
 void audio_out_disable(void);
 
+CY_ISR_PROTO(bs_done_isr);
 CY_ISR_PROTO(i2s_done_isr);
 
 #endif

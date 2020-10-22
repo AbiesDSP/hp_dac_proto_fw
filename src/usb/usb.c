@@ -3,7 +3,7 @@
 #include "sync/sync.h"
 #include "project.h"
 
-#define USE_HYST    (1u)
+#define USE_HYST    (0u)
 
 #define FB_MIN  (784384)
 #define FB_MAX  (788480)
@@ -37,7 +37,6 @@ void usb_sof(void)
 {
     uint16_t new_fb = 0, size = 0;
     uint8_t int_status = 0;
-    static uint8_t fb_hyster = FB_HYST_DEAD;
 
     int_status = CyEnterCriticalSection();
     size = audio_out_buffer_size;
@@ -47,6 +46,7 @@ void usb_sof(void)
      new_fb = ((uint16_t)fb_data[2] << 8) | fb_data[1];
     
     #if USE_HYST
+    static uint8_t fb_hyster = FB_HYST_DEAD;
     if (fb_updated == 0 && audio_out_active) {
         // We are in the deadband.
         if (fb_hyster == FB_HYST_DEAD) {
@@ -83,7 +83,7 @@ void usb_sof(void)
         sample_rate_feedback = new_fb;
     }
     #else
-    if (fb_updated == 0) {
+    if (fb_updated == 0 && audio_out_active) {
         if (size < (AUDIO_OUT_ACTIVE_LIMIT - USB_FB_RANGE)) {
 //            new_fb = sync_new_feedback >> 8;
             new_fb += USB_FB_INC;

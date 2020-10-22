@@ -11,6 +11,13 @@
 #define N_BS_TD             ((AUDIO_OUT_BUF_SIZE + (MAX_TRANSFER_SIZE - 1))/MAX_TRANSFER_SIZE)
 
 uint8_t audio_out_buf[AUDIO_OUT_BUF_SIZE];
+/* Write and read ptrs are for processing. It won't affect USB/I2S unless you write outside.
+ * the buffers for processing. When data is written, the write pointer increments, then when
+ * it's processed, the read pointer should increment. Shadow is bytes that haven't transferred yet.
+ * 
+ */
+volatile uint16_t audio_out_read_ptr;
+volatile uint16_t audio_out_shadow;
 volatile uint16_t audio_out_buffer_size;
 volatile uint8_t audio_out_status;
 volatile uint8_t audio_out_active;
@@ -62,6 +69,8 @@ void audio_out_init(audio_out_config config)
         audio_out_buf[i] = 0;
     }
     // Initialize buffer management.
+    audio_out_read_ptr = 0;
+    audio_out_shadow = 0;
     audio_out_buffer_size = 0;
     audio_out_status = 0;
     audio_out_active = 0;
@@ -108,7 +117,8 @@ void audio_out_update(void)
     if ((audio_out_status & AUDIO_OUT_STS_ACTIVE) == 0u && buf_size >= AUDIO_OUT_ACTIVE_LIMIT) {
         audio_out_enable();
     }
-    audio_out_update_flag = 1u;
+    // Bytes needing processing
+    audio_out_shadow += count;
 }
 
 void audio_out_enable(void)
@@ -163,6 +173,12 @@ static void i2s_dma_config(void)
         CyDmaTdSetAddress(i2s_dma_td[i], LO16((uint32_t)&audio_out_buf[i * AUDIO_OUT_TRANSFER_SIZE]), LO16((uint32_t)I2S_TX_CH0_F0_PTR));
     }
     CyDmaChSetInitialTd(i2s_dma_ch, i2s_dma_td[0]);
+}
+
+// Byte swap transfer completed. Ready for processing.
+CY_ISR_PROTO(bs_done_isr)
+{
+    audio_out_update_flag = 1;
 }
 
 // This isr is when the I2S transfer completes.

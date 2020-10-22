@@ -96,7 +96,7 @@ int main(void)
     
     uint8_t int_status;
     uint16_t buf_size;
-    uint16_t update_mod = 0;
+    uint16_t read_ptr = 0;
 //    uint8_t error = 0;
 //    uint8_t rx_status = 0;
 //    uint16_t rx_size = 0, packet_size = 0;
@@ -125,12 +125,25 @@ int main(void)
         if (USBFS_GetConfiguration()) {
             usb_service();
         }
+        // Feedback was updated. Send telemetry.
         if (fb_update_flag && audio_out_active) {
             fb_update_flag = 0;
             int_status = CyEnterCriticalSection();
             buf_size = audio_out_buffer_size;
             CyExitCriticalSection(int_status);
             comm_send(comm_main, (uint8_t*)&buf_size, sizeof(buf_size));
+        }
+        /* Byte swap transfer finished. Ready to process data.
+         * audio_out_shadow is how many bytes need processing.
+         * When you remove data update the read ptr and shadow
+         * to account for processed bytes.*/
+        if (audio_out_update_flag) {
+            audio_out_update_flag = 0;
+            // Like this.
+            read_ptr += audio_out_shadow;
+            if (read_ptr >= AUDIO_OUT_BUF_SIZE) {
+                read_ptr = read_ptr - AUDIO_OUT_BUF_SIZE;
+            }
         }
     }
 }
