@@ -125,7 +125,7 @@ int main(void)
         if (USBFS_GetConfiguration()) {
             usb_service();
         }
-        if (fb_update_flag) {
+        if (fb_update_flag && audio_out_active) {
             fb_update_flag = 0;
             int_status = CyEnterCriticalSection();
             buf_size = audio_out_buffer_size;

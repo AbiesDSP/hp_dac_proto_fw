@@ -13,6 +13,7 @@
 uint8_t audio_out_buf[AUDIO_OUT_BUF_SIZE];
 volatile uint16_t audio_out_buffer_size;
 volatile uint8_t audio_out_status;
+volatile uint8_t audio_out_active;
 
 volatile uint8_t audio_out_update_flag;
 
@@ -63,6 +64,7 @@ void audio_out_init(audio_out_config config)
     // Initialize buffer management.
     audio_out_buffer_size = 0;
     audio_out_status = 0;
+    audio_out_active = 0;
     audio_out_update_flag = 0u;
     byte_swap_DP_F0_SET_LEVEL_MID;
     byte_swap_DP_F1_SET_LEVEL_MID;
@@ -114,6 +116,7 @@ void audio_out_enable(void)
     // Only enable if we're currently enabled
     if ((audio_out_status & AUDIO_OUT_STS_ACTIVE) == 0u) {
         audio_out_status |= AUDIO_OUT_STS_ACTIVE;
+        audio_out_active = 1;
         mute_Write(1u);
         CyDmaChEnable(i2s_dma_ch, 1u);
         sync_enable();
@@ -130,6 +133,7 @@ void audio_out_disable(void)
         CyDelayUs(20);  // Delays in isr? That's a paddlin.
         CyDmaChDisable(i2s_dma_ch);
         audio_out_status &= ~AUDIO_OUT_STS_ACTIVE;
+        audio_out_active = 0;
         audio_out_buffer_size = 0;
     }
 }

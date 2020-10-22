@@ -24,6 +24,7 @@
 
 extern uint8_t audio_out_buf[AUDIO_OUT_BUF_SIZE];
 extern volatile uint16_t audio_out_buffer_size;
+extern volatile uint8_t audio_out_active;
 extern volatile uint8_t audio_out_status;
 
 extern volatile uint8_t audio_out_update_flag;
