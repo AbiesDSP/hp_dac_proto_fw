@@ -21,9 +21,6 @@
 #define USB_ALT_ACTIVE_24   (2u)
 #define USB_ALT_ACTIVE_16   (1u)
 #define USB_ALT_INVALID     (0xFF)
-    
-#define USB_FB_INC      (0x08);
-#define USB_FB_RANGE    (576u)
 
 extern uint8_t usb_out_buf[USB_BUF_SIZE];
 extern uint8_t fb_data[3];
@@ -32,6 +29,8 @@ extern uint32_t sample_rate_feedback;
 
 extern uint8_t usb_status;
 extern uint8_t usb_alt_setting[USB_NO_STREAM_IFACE];
+
+extern volatile uint8_t fb_update_flag;
 
 void usb_start(void);
 void usb_sof(void);

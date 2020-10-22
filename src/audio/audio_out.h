@@ -5,21 +5,22 @@
 #include "cytypes.h"
 #include <stdint.h>
 
-#define AUDIO_OUT_BUF_SIZE      (4608u)
-#define AUDIO_OUT_TRANSFER_SIZE (144u)
+#define AUDIO_OUT_BUF_SIZE      (9216u)
+#define AUDIO_OUT_TRANSFER_SIZE (288u)
 #define AUDIO_OUT_N_TD          (32u)
 #define AUDIO_OUT_EP            (1u)
 
-#define AUDIO_OUT_LOW_LIMIT     (588u)
-#define AUDIO_OUT_HIGH_LIMIT    (4020u)
-#define AUDIO_OUT_ACTIVE_LIMIT  (2304u)
-#define AUDIO_OUT_FB_LOW        (1152u)
-#define AUDIO_OUT_FB_HIGH       (2304u)
+#define AUDIO_OUT_LOW_LIMIT     (USB_FB_RANGE)
+#define AUDIO_OUT_HIGH_LIMIT    (AUDIO_OUT_BUF_SIZE - USB_FB_RANGE)
+#define AUDIO_OUT_ACTIVE_LIMIT  (4308u)
 
 #define AUDIO_OUT_STS_ACTIVE    (0x01u)
 #define AUDIO_OUT_STS_OVERFLOW  (0x02u)
 #define AUDIO_OUT_STS_UNDERFLOW (0x04u)
 #define AUDIO_OUT_STS_RESET     (0x08u)
+
+#define USB_FB_INC      (0x08)
+#define USB_FB_RANGE    (576u)
 
 extern uint8_t audio_out_buf[AUDIO_OUT_BUF_SIZE];
 extern volatile uint16_t audio_out_buffer_size;
