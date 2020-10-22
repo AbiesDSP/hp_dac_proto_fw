@@ -60,14 +60,14 @@ void usb_sof(void)
             }
         } else if (fb_hyster == FB_HYST_INC) {
             // Stop increasing when we hit half.
-            if (size <= AUDIO_OUT_ACTIVE_LIMIT) {
+            if (size <= (AUDIO_OUT_ACTIVE_LIMIT + USB_FB_RANGE)) {
                 fb_hyster = FB_HYST_DEAD;
             } else {
                 // Stay increasing.
                 new_fb += USB_FB_INC;
             }
         } else if (fb_hyster == FB_HYST_DEC) {
-            if (size >= AUDIO_OUT_ACTIVE_LIMIT) {
+            if (size >= (AUDIO_OUT_ACTIVE_LIMIT - USB_FB_RANGE)) {
                 fb_hyster = FB_HYST_DEAD;
             } else {
                 new_fb -= USB_FB_INC;
