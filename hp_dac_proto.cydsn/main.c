@@ -15,15 +15,37 @@
 
 volatile uint8_t mute_toggle = 1;
 volatile comm comm_main;
+volatile uint8_t adc_channel = 0;
+volatile uint8_t adc_done_flag = 0;
 
 CY_ISR_PROTO(mute_button);
 CY_ISR_PROTO(bootload_isr);
 CY_ISR_PROTO(txdoneisr);
 CY_ISR_PROTO(spyisr);
 
+CY_ISR_PROTO(adcdone);
+
 int main(void)
 {
     CyGlobalIntEnable;
+    // ADC Setup
+    uint16_t adc_buf[3];
+    uint8_t adc_dma_ch = DMA_ADC_DmaInitialize(2u, 1u, HI16(CYDEV_PERIPH_BASE), HI16(CYDEV_SRAM_BASE));
+    uint8_t adc_dma_td[1];
+    
+    adc_dma_td[0] = CyDmaTdAllocate();
+    CyDmaTdSetConfiguration(adc_dma_td[0], 6u, adc_dma_td[0], TD_INC_DST_ADR);
+    CyDmaTdSetAddress(adc_dma_td[0], LO16((uint32_t)ADC_DEC_SAMP_PTR), LO16((uint32_t)&adc_buf[0]));
+    CyDmaChSetInitialTd(adc_dma_ch, adc_dma_td[0]);
+    CyDmaChEnable(adc_dma_ch, 1u);
+    VDAC_pot_Start();
+    Opamp_pot_Start();
+    AMuxSeq_Start();
+    AMuxSeq_Next();
+    adc_isr_StartEx(adcdone);
+    ADC_Start();
+    ADC_StartConvert();
+    
     // Enable mute button ISR. Configuring audio will automatically unmute as well.
     mute_isr_StartEx(mute_button);
     mute_Write(mute_toggle);
@@ -110,16 +132,16 @@ int main(void)
             usb_service();
         }
         // Feedback was updated. Send telemetry.
-        if (fb_update_flag && audio_out_active) {
-            fb_update_flag = 0;
-            // Audio out buffer size is modified in an isr,
-            // so we'll just grab a quick copy
-            int_status = CyEnterCriticalSection();
-            log_dat = audio_out_buffer_size;
-            CyExitCriticalSection(int_status);
-            // Send the data over the UART
-            comm_send(comm_main, (uint8_t*)&log_dat, sizeof(log_dat));
-        }
+//        if (fb_update_flag && audio_out_active) {
+//            fb_update_flag = 0;
+//            // Audio out buffer size is modified in an isr,
+//            // so we'll just grab a quick copy
+//            int_status = CyEnterCriticalSection();
+//            log_dat = audio_out_buffer_size;
+//            CyExitCriticalSection(int_status);
+//            // Send the data over the UART
+//            comm_send(comm_main, (uint8_t*)&log_dat, sizeof(log_dat));
+//        }
         /* Byte swap transfer finished. Ready to process data.
          * audio_out_shadow is how many bytes need processing.
          * When you remove data update the read ptr and shadow
@@ -134,6 +156,11 @@ int main(void)
             if (read_ptr >= AUDIO_OUT_BUF_SIZE) {
                 read_ptr = read_ptr - AUDIO_OUT_BUF_SIZE;
             }
+        }
+        if (adc_done_flag && adc_channel == 0) {
+            adc_done_flag = 0;
+            log_dat = adc_buf[2];
+            comm_send(comm_main, (uint8_t*)&log_dat, sizeof(log_dat));
         }
     }
 }
@@ -161,4 +188,13 @@ CY_ISR(txdoneisr)
 CY_ISR(spyisr)
 {   
     comm_rx_isr(comm_main);
+}
+
+CY_ISR(adcdone)
+{
+    AMuxSeq_Next();
+    adc_done_flag = 1;
+    adc_channel++;
+    adc_channel = adc_channel == 3 ? 0u : adc_channel;
+    ADC_StartConvert();
 }

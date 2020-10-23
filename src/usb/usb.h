@@ -33,8 +33,6 @@ extern uint8_t usb_alt_setting[USB_NO_STREAM_IFACE];
 extern volatile uint8_t fb_update_flag;
 
 void usb_start(void);
-// Called in the SOF ISR. Put this in cyapicallbacks.
-void usb_sof(void);
 // Called every 128 samples when feedback ep is updated. Put this in cyapicallbacks.
 void usb_feedback(void);
 // Call in main loop to handle usb stuff
