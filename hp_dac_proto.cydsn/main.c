@@ -3,15 +3,16 @@
 #include "usb/usb.h"
 #include "sync/sync.h"
 #include "comm/comm.h"
+#include "knobs/knobs.h"
 
 #define ENABLE_BOOTLOAD (0u)
 
 #define ever    (;;)
 
-#define RX_BUF_SIZE         (1024u)
-#define RX_TRANSFER_SIZE    (255u)
-#define TX_BUF_SIZE         (1024u)
-#define TX_TRANSFER_SIZE    (255u)
+#define RX_BUF_SIZE         (256u)
+#define RX_TRANSFER_SIZE    (128u)
+#define TX_BUF_SIZE         (256u)
+#define TX_TRANSFER_SIZE    (128u)
 
 volatile uint8_t mute_toggle = 1;
 volatile comm comm_main;
@@ -24,9 +25,13 @@ CY_ISR_PROTO(spyisr);
 int main(void)
 {
     CyGlobalIntEnable;
+
     // Enable mute button ISR. Configuring audio will automatically unmute as well.
     mute_isr_StartEx(mute_button);
     mute_Write(mute_toggle);
+
+    // Set up analog inputs
+    knobs_start();
     
     // DMA Channels for audio out process.
     uint8_t usb_dma_ch, bs_dma_ch, i2s_dma_ch;
@@ -134,6 +139,12 @@ int main(void)
             if (read_ptr >= AUDIO_OUT_BUF_SIZE) {
                 read_ptr = read_ptr - AUDIO_OUT_BUF_SIZE;
             }
+        }
+        // New update from adc.
+        if (knob_status & KNOB_STS_NEW) {
+            knob_status &= ~KNOB_STS_NEW;
+            // Do something with adc data?
+            // something = knob[0] * sample?;
         }
     }
 }

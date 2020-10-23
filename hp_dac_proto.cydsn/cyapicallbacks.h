@@ -22,8 +22,5 @@
     #define USBFS_EP_3_ISR_ENTRY_CALLBACK
     #define USBFS_EP_3_ISR_EntryCallback()  usb_feedback()
     
-    #define USBFS_SOF_ISR_ENTRY_CALLBACK	
-	#define USBFS_SOF_ISR_EntryCallback()	usb_sof()
-    
 #endif /* CYAPICALLBACKS_H */   
 /* [] */
