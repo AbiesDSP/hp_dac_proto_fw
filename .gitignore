@@ -12,6 +12,7 @@
 !*.cydsn/TopDesign/*.cysch
 !*.cydsn/sync_counter*
 !*.cydsn/byte_swap*
+!*.cydsn/rx_spy*
 *.LOG
 *.cycdx
 *.cyfit
