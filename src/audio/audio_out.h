@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 #define AUDIO_OUT_TRANSFER_SIZE (288u)
-#define AUDIO_OUT_N_TD          (64u)
+#define AUDIO_OUT_N_TD          (32u)
 #define AUDIO_OUT_BUF_SIZE      (AUDIO_OUT_N_TD * AUDIO_OUT_TRANSFER_SIZE)
 
 #define AUDIO_OUT_LOW_LIMIT     (USB_FB_RANGE)
