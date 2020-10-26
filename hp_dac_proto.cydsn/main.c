@@ -5,6 +5,7 @@
 #include "comm/comm.h"
 
 #define ENABLE_BOOTLOAD (0u)
+#define N_BYTES (3u)
 
 #define ever    (;;)
 
@@ -80,6 +81,7 @@ int main(void)
     uint8_t int_status;
     uint16_t log_dat;
     uint16_t read_ptr = 0;
+    uint32_t sample;
 //    uint8_t error = 0;
 //    uint8_t rx_status = 0;
 //    uint16_t rx_size = 0, packet_size = 0;
@@ -129,11 +131,36 @@ int main(void)
          */
         if (audio_out_update_flag) {
             audio_out_update_flag = 0;
-            // Like this.
-            read_ptr += audio_out_shadow;
-            if (read_ptr >= AUDIO_OUT_BUF_SIZE) {
-                read_ptr = read_ptr - AUDIO_OUT_BUF_SIZE;
+
+            for (uint16_t i = 0; i < (audio_out_shadow / 3); i++) {
+//                sample_buf[0] = audio_out_buf[read_ptr];
+//                read_ptr++;
+//                read_ptr = read_ptr == AUDIO_OUT_BUF_SIZE ? 0u : read_ptr;
+//                
+//                sample_buf[1] = audio_out_buf[read_ptr];
+//                read_ptr++;
+//                read_ptr = read_ptr == AUDIO_OUT_BUF_SIZE ? 0u : read_ptr;
+//                
+//                sample_buf[2] = audio_out_buf[read_ptr];
+//                read_ptr++;
+//                read_ptr = read_ptr == AUDIO_OUT_BUF_SIZE ? 0u : read_ptr;
+                sample = audio_out_buf[read_ptr + 0];
+                sample <<= 8;
+                sample |= audio_out_buf[read_ptr + 1];
+                sample <<= 8;
+                sample |= audio_out_buf[read_ptr + 2];
+                
+                sample /= 2;   // Reduce volume
+                
+                audio_out_buf[read_ptr + 0] = (sample >> 16) & 0xFF;
+                audio_out_buf[read_ptr + 1] = (sample >> 8) & 0xFF;
+                audio_out_buf[read_ptr + 2] = sample & 0xFF;
+                
+                
+                read_ptr += N_BYTES;
+                read_ptr = read_ptr == AUDIO_OUT_BUF_SIZE ? 0u : read_ptr;
             }
+            audio_out_shadow = 0;
         }
     }
 }
