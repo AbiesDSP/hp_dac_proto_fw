@@ -22,6 +22,33 @@ CY_ISR_PROTO(bootload_isr);
 CY_ISR_PROTO(txdoneisr);
 CY_ISR_PROTO(spyisr);
 
+// Converts a signed 24bit number into a signed 32bit number.
+int32_t get_sample(uint8_t *buf)
+{
+    /* LSB will be 0. This probably isn't the right
+     * way to go about resampling to 32bit. I would
+     * imagine we need to do some kind of interpolation?
+     * But I don't know much about resampling yet.
+     */
+    int32_t sample = 0;
+    
+    /* Dump bytes into a 32bit integer. Left justified will preserve sign.
+     * This means we've effectively multiplied our value by 256. But we will
+     * end up dividing our sample by 256 when we repack it.
+    */
+    sample = ((uint32_t)buf[0] << 24) | ((uint32_t)buf[1] << 16) | (uint32_t)(buf[2] << 8);
+    
+    return sample;
+}
+//
+void put_sample_back_where_you_found_it_please(int32_t sample, uint8_t *buf)
+{
+    // Bottom 8bits don't matter.
+    buf[0] = (sample >> 24) & 0xFF;
+    buf[1] = (sample >> 16) & 0xFF;
+    buf[2] = (sample >> 8) & 0xFF;
+}
+
 int main(void)
 {
     CyGlobalIntEnable;
@@ -81,7 +108,7 @@ int main(void)
     uint8_t int_status;
     uint16_t log_dat;
     uint16_t read_ptr = 0;
-    uint32_t sample;
+    int32_t sample;
 //    uint8_t error = 0;
 //    uint8_t rx_status = 0;
 //    uint16_t rx_size = 0, packet_size = 0;
@@ -131,32 +158,20 @@ int main(void)
          */
         if (audio_out_update_flag) {
             audio_out_update_flag = 0;
-
+            /* Loop through each audio sample. and apply a volume filter.
+             * audio_out_shadow will always be a multiple of 6, and our buffer
+             * size should always be a multiple of 6 as well. So we can take some
+             * shortcuts with the read ptr update by updating it only once per sample
+             * instead of once per byte. Makes it easier.
+             */
             for (uint16_t i = 0; i < (audio_out_shadow / 3); i++) {
-//                sample_buf[0] = audio_out_buf[read_ptr];
-//                read_ptr++;
-//                read_ptr = read_ptr == AUDIO_OUT_BUF_SIZE ? 0u : read_ptr;
-//                
-//                sample_buf[1] = audio_out_buf[read_ptr];
-//                read_ptr++;
-//                read_ptr = read_ptr == AUDIO_OUT_BUF_SIZE ? 0u : read_ptr;
-//                
-//                sample_buf[2] = audio_out_buf[read_ptr];
-//                read_ptr++;
-//                read_ptr = read_ptr == AUDIO_OUT_BUF_SIZE ? 0u : read_ptr;
-                sample = audio_out_buf[read_ptr + 0];
-                sample <<= 8;
-                sample |= audio_out_buf[read_ptr + 1];
-                sample <<= 8;
-                sample |= audio_out_buf[read_ptr + 2];
-                
-                sample /= 2;   // Reduce volume
-                
-                audio_out_buf[read_ptr + 0] = (sample >> 16) & 0xFF;
-                audio_out_buf[read_ptr + 1] = (sample >> 8) & 0xFF;
-                audio_out_buf[read_ptr + 2] = sample & 0xFF;
-                
-                
+                // Convert bytes into signed integer.
+                sample = get_sample(&audio_out_buf[read_ptr]);
+                // divide volume by 16
+                sample >>= 4;
+                // Unpack modified sample into the buffer.
+                put_sample_back_where_you_found_it_please(sample, &audio_out_buf[read_ptr]);
+                // Update read pointer
                 read_ptr += N_BYTES;
                 read_ptr = read_ptr == AUDIO_OUT_BUF_SIZE ? 0u : read_ptr;
             }
