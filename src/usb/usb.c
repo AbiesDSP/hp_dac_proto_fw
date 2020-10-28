@@ -5,14 +5,14 @@
 
 #define USE_HYST    (0u)
 
-#define FB_NOM          (3072u)
+#define FB_NOM          (6144u)
 #define FB_HYST_DEAD    (0x00)
 #define FB_HYST_INC     (0x01)
 #define FB_HYST_DEC     (0x02)
 
-const uint16_t fb_default = 0x0C00;
+const uint16_t fb_default = 0x1800;
 
-volatile uint8_t fb_data[3] = {0x00, 0x00, 0x0C};
+volatile uint8_t fb_data[3] = {0x00, 0x00, 0x18};
 volatile uint8_t fb_updated = 0;
 uint32_t sample_rate_feedback = 0;
 
@@ -162,7 +162,7 @@ void usb_service(void)
                 USBFS_LoadInEP(AUDIO_FB_EP, (const uint8_t*)fb_data, 3);
                 USBFS_LoadInEP(AUDIO_FB_EP, USBFS_NULL, 3);
             }
-            fb_data[2] = 0x0C;
+            fb_data[2] = 0x18;
             fb_data[1] = 0x00;
             fb_data[0] = 0x00;
         }
