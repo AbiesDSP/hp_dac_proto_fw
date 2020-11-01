@@ -4,6 +4,8 @@
 #include "sync/sync.h"
 #include "comm/comm.h"
 #include "knobs/knobs.h"
+#include "pre_post_processing/samplemanagement.h"
+#include "volume/volume.h"
 
 #define ENABLE_BOOTLOAD (0u)
 
@@ -32,6 +34,9 @@ int main(void)
 
     // Set up analog inputs
     knobs_start();
+    
+    // Set up volume control
+    volume_start();
     
     // DMA Channels for audio out process.
     uint8_t usb_dma_ch, bs_dma_ch, i2s_dma_ch;
@@ -85,6 +90,8 @@ int main(void)
     uint8_t int_status;
     uint16_t log_dat;
     uint16_t read_ptr = 0;
+    int32_t unprocessed_sample;
+    int32_t processed_sample;
 //    uint8_t error = 0;
 //    uint8_t rx_status = 0;
 //    uint16_t rx_size = 0, packet_size = 0;
@@ -134,17 +141,33 @@ int main(void)
          */
         if (audio_out_update_flag) {
             audio_out_update_flag = 0;
-            // Like this.
-            read_ptr += audio_out_shadow;
-            if (read_ptr >= AUDIO_OUT_BUF_SIZE) {
-                read_ptr = read_ptr - AUDIO_OUT_BUF_SIZE;
+            //loop through each audio sample and pull it out into 32 bit signed int for processing
+            for (uint16_t i = 0; i < (audio_out_shadow / 3); i++) {
+                
+                int_status = CyEnterCriticalSection();
+                // Convert bytes into signed integer.
+                unprocessed_sample = get_audio_sample_from_bytestream(&audio_out_buf[read_ptr]);
+                // Proccess sample as desired
+         
+                // As a last step, set the sample volume right before putting it back in the buffer
+                processed_sample = apply_volume_filter_to_sample(unprocessed_sample);
+                // Unpack modified sample into the buffer.
+                return_sample_to_bytestream(processed_sample, &audio_out_buf[read_ptr]);
+                CyExitCriticalSection(int_status);
+                
+                // Update read pointer
+                read_ptr += N_BYTES;
+                read_ptr = read_ptr == AUDIO_OUT_BUF_SIZE ? 0u : read_ptr;
             }
+            audio_out_shadow = 0;
         }
         // New update from adc.
         if (knob_status & KNOB_STS_NEW) {
             knob_status &= ~KNOB_STS_NEW;
-            // Do something with adc data?
-            // something = knob[0] * sample?;
+            int_status = CyEnterCriticalSection();
+            //set the volume multiplier based on the new knob value
+            set_volume();
+            CyExitCriticalSection(int_status);
         }
     }
 }

@@ -5,6 +5,8 @@
 #include "cytypes.h"
 #include <stdint.h>
 
+#define N_BYTES                 (3u)
+
 #define AUDIO_OUT_TRANSFER_SIZE (288u)
 #define AUDIO_OUT_N_TD          (32u)
 #define AUDIO_OUT_BUF_SIZE      (AUDIO_OUT_N_TD * AUDIO_OUT_TRANSFER_SIZE)
