@@ -43,3 +43,25 @@ void test_signed_shift(void)
     result = sample << 1;
     TEST_ASSERT_EQUAL_INT32(expected, result);
 }
+
+void test_twoscomplement(void)
+{
+    int16_t sample, result, expected;
+
+    // What number is this? Is it -64?
+    sample = 0xC000;
+    expected = -64;
+    TEST_ASSERT_NOT_EQUAL_INT16(expected, sample);
+    // Nope.
+
+    // What number is this? Is it -96?
+    sample = 0xE000;
+    expected = -96;
+    TEST_ASSERT_NOT_EQUAL_INT16(expected, sample);
+    // Nope.
+
+    // Two's complement.
+    sample = 0xFFC0;
+    expected = -64;
+    TEST_ASSERT_EQUAL_INT16(expected, sample);
+}

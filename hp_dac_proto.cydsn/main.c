@@ -25,6 +25,11 @@ CY_ISR_PROTO(spyisr);
 int main(void)
 {
     CyGlobalIntEnable;
+    
+    volatile int32_t x = 420;
+    volatile int32_t result = 0;
+    
+    result = x >> 1;
 
     // Enable mute button ISR. Configuring audio will automatically unmute as well.
     mute_isr_StartEx(mute_button);
@@ -106,7 +111,7 @@ int main(void)
     boot_isr_StartEx(bootload_isr);
 
 //    sync_init();
-    usb_start();
+//    usb_start();
     
     for ever
     {
