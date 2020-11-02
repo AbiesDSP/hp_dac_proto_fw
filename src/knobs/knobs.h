@@ -2,7 +2,7 @@
 #define KNOBS_H
 
 #include <stdint.h>
-#include "CyLib.h"
+#include "cytypes.h"    // Change to cytypes for simpler dependency.
 
 #define N_KNOBS (3u)
 #define KNOB_STS_NEW    (0x01u)

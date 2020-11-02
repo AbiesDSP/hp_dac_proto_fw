@@ -1,6 +1,7 @@
 #ifndef VOLUME_H
 #define VOLUME_H
 
+#include "knobs/knobs.h" // include knobs here instead of in the .c so everything that includes volume will get the knobs dependencies too. Like KNOBS_MAX
 #include <stdint.h>
 
 //volume is the current volume multiplier [0,1] based on the volume knob state

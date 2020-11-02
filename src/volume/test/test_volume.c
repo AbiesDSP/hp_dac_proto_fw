@@ -1,6 +1,13 @@
 #include "unity.h"
 #include "volume/volume.h"
-#include "knobs/knobs.h"
+
+/* knobs.c doesn't get compiled, but we do include its header file.
+ * so knobs[] isn't defined anywhere when it tries to run. But
+ * we can define knobs here to use it for testing. This has a 
+ * conveniant side effect. knobs is no longer dependent on knobs.c
+ * so you can insert any values into knobs to use for testing.
+ */
+volatile uint16_t knobs[N_KNOBS];
 
 void setUp(void)
 {
