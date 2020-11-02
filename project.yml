@@ -36,7 +36,8 @@
     - src/**/
   :source:
     - src/**
-    - hp_dac_proto.cydsn/Generated_Source/
+    - hp_dac_proto.cydsn/Generated_Source/PSoC5/*
+    - hp_dac_proto.cydsn/*
   :support:
     - test/support
 
