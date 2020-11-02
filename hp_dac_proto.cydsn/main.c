@@ -147,11 +147,15 @@ int main(void)
                 int_status = CyEnterCriticalSection();
                 // Convert bytes into signed integer.
                 unprocessed_sample = get_audio_sample_from_bytestream(&audio_out_buf[read_ptr]);
+                CyExitCriticalSection(int_status);
                 // Proccess sample as desired
          
                 // As a last step, set the sample volume right before putting it back in the buffer
+                int_status = CyEnterCriticalSection();
                 processed_sample = apply_volume_filter_to_sample(unprocessed_sample);
+                CyExitCriticalSection(int_status);
                 // Unpack modified sample into the buffer.
+                int_status = CyEnterCriticalSection();
                 return_sample_to_bytestream(processed_sample, &audio_out_buf[read_ptr]);
                 CyExitCriticalSection(int_status);
                 
@@ -166,7 +170,7 @@ int main(void)
             knob_status &= ~KNOB_STS_NEW;
             int_status = CyEnterCriticalSection();
             //set the volume multiplier based on the new knob value
-            set_volume();
+            set_volume_multiplier();
             CyExitCriticalSection(int_status);
         }
     }

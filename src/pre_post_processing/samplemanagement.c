@@ -25,9 +25,9 @@ void return_sample_to_bytestream(int32_t sample, uint8_t *buf)
     //there's probbly a better way to do this, this certainly drops information
     //might want to think about dithering
 
-    uint8_t first_byte = sample >> 24 & 0xFF;
-    uint8_t second_byte = sample >> 16 & 0xFF;
-    uint8_t third_byte = sample >> 8 & 0xFF;
+    uint8_t first_byte = sample >> 24 & 0x000000FF;
+    uint8_t second_byte = sample >> 16 & 0x000000FF;
+    uint8_t third_byte = sample >> 8 & 0x000000FF;
 
     *(buf) = first_byte;
     *(buf+1) = second_byte;
