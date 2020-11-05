@@ -7,6 +7,9 @@ static uint8_t adc_dma_ch;
 static uint8_t adc_dma_td[1];
 static volatile uint8_t adc_ch;
 
+// ISR for ADC eoc.
+CY_ISR_PROTO(adcdone);
+
 void knobs_start(void)
 {
     uint16_t i = 0;

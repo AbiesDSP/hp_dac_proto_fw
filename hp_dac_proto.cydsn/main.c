@@ -52,7 +52,6 @@ int main(void)
         .bs_dma_termout_en = DMA_BS__TD_TERMOUT_EN,
         .i2s_dma_ch = i2s_dma_ch,
         .i2s_dma_termout_en = DMA_I2S__TD_TERMOUT_EN,
-        .usb_buf = usb_out_buf,
         .bs_fifo_in = byte_swap_fifo_in_ptr,
         .bs_fifo_out = byte_swap_fifo_out_ptr
     };
@@ -112,7 +111,8 @@ int main(void)
     boot_isr_StartEx(bootload_isr);
 
 //    sync_init();
-    usb_start();
+    // USB audio will put incoming data into the audio processing buffer.
+    usb_start(audio_out_process, AUDIO_OUT_PROCESS_SIZE);
     
     for ever
     {
@@ -140,8 +140,6 @@ int main(void)
             
             i = 0;
             while (range > 0) {
-                // We know the bottom 8 bits are 0. So we can shift, then multiply.
-                // This saves us from needing to use a 64bit int to hold the multiply result.
                 sample = get_audio_sample_from_bytestream(&audio_out_process[i]);
                 sample = apply_volume_filter_to_sample(sample);
                 return_sample_to_bytestream(sample, &audio_out_process[i]);

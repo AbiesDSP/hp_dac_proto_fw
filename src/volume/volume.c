@@ -2,7 +2,7 @@
 #include "knobs/knobs.h"
 
 uint8_t volume_multiplier;
-uint16_t knob_buckets[257];
+// uint16_t knob_buckets[257];
 
 void volume_start(void)
 {
