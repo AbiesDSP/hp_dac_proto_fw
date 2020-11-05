@@ -13,7 +13,7 @@ extern uint8_t volume_multiplier;
 // volume_array is set at initialization of volume, and contains the array of multiplier values to index to
 //extern uint16_t knob_buckets[257];
     
-inline int32_t apply_volume_filter_to_sample(int32_t sample) {return (sample >> 8) * volume_multiplier;}
+extern inline int32_t apply_volume_filter_to_sample(int32_t sample);
 void set_volume_multiplier(int16_t knob_value);
 void volume_start(void);
 
