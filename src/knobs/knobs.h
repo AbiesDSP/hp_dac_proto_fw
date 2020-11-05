@@ -11,7 +11,7 @@
 #define KNOBS_MAX       (0x7FFF)
 
 // When KNOB_STS_NEW is set in knob_status, knobs will have been updated to the latest value.
-extern volatile uint16_t knobs[N_KNOBS];
+extern volatile int16_t knobs[N_KNOBS];
 extern volatile uint8_t knob_status;
 
 void knobs_start(void);

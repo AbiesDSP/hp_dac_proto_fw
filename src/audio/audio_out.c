@@ -5,6 +5,8 @@
 #include "USBFS.h"
 #include "I2S.h"
 #include "mute.h"
+#include "volume/volume.h"
+#include "pre_post_processing/samplemanagement.h"
 
 #define MAX_TRANSFER_SIZE   (4095u)
 #define FIFO_HALF_FULL_MASK (0x0C)
@@ -92,7 +94,8 @@ void audio_out_start(void)
 void audio_out_update(void)
 {
     uint8_t int_status;
-    uint16_t count, buf_size;
+    uint16_t count, buf_size, range, i;
+    int32_t sample;
     // We've received bytes from USB. We need to transfer to byte_swap.
     // Reset here for any reason?
 
@@ -102,6 +105,17 @@ void audio_out_update(void)
     }
 
     count = USBFS_GetEPCount(AUDIO_OUT_EP);
+    range = count;
+    i = 0;
+    while (range > 0) {
+        // We know the bottom 8 bits are 0. So we can shift, then multiply.
+        // This saves us from needing to use a 64bit int to hold the multiply result.
+        sample = get_audio_sample_from_bytestream(&usb_out_buf[i]);
+        sample = apply_volume_filter_to_sample(sample);
+        return_sample_to_bytestream(sample, &usb_out_buf[i]);
+        range -= 3;
+        i += 3;
+    }
     // Start a dma transaction
     CyDmaTdSetConfiguration(usb_dma_td[0], count, CY_DMA_DISABLE_TD, (TD_INC_SRC_ADR | usb_dma_termout_en));
     CyDmaTdSetAddress(usb_dma_td[0], LO16((uint32_t)&usb_buf[0]), LO16((uint32_t)bs_fifo_in));
