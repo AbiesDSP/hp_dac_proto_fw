@@ -134,7 +134,10 @@ int main(void)
         // Process audio
         if (audio_out_update_flag) {
             audio_out_update_flag = 0;
+            int_status = CyEnterCriticalSection();
             range = audio_out_count;
+            CyExitCriticalSection(int_status);
+            
             i = 0;
             while (range > 0) {
                 // We know the bottom 8 bits are 0. So we can shift, then multiply.
