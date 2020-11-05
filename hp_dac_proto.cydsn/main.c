@@ -145,7 +145,7 @@ int main(void)
                 range -= 3;
                 i += 3;
             }
-            // Put processed bytes into audio buffer, and send it out.
+            // Put processed bytes into byte swap dma transfer and send it out.
             audio_out_transmit();
         }
 
