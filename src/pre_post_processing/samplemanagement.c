@@ -1,5 +1,4 @@
 #include "pre_post_processing/samplemanagement.h"
-#include "project.h"
 
 //int32_t get_audio_sample_from_bytestream(uint8_t *buf)
 //{

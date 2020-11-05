@@ -6,9 +6,8 @@
 
 #define N_KNOBS (3u)
 #define KNOB_STS_NEW    (0x01u)
-#define VOLUME_KNOB     (0u)
 //currently a 15 bit adc
-#define KNOBS_MAX       (0x7FFF)
+#define KNOB_RES    (15u)
 
 // When KNOB_STS_NEW is set in knob_status, knobs will have been updated to the latest value.
 extern volatile int16_t knobs[N_KNOBS];

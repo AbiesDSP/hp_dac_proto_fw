@@ -4,7 +4,8 @@
 #include "knobs/knobs.h" // include knobs here instead of in the .c so everything that includes volume will get the knobs dependencies too. Like KNOBS_MAX
 #include <stdint.h>
 
-#define VOL_N_BITS  (8u)
+// Resolution of volume control in bits.
+#define VOL_RES     (8u)
 
 //volume is the current volume multiplier [0,1] based on the volume knob state
 extern uint8_t volume_multiplier;

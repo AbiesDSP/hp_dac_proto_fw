@@ -1,6 +1,5 @@
 #include "volume/volume.h"
 #include "knobs/knobs.h"
-#include "project.h"
 
 uint8_t volume_multiplier;
 uint16_t knob_buckets[257];
@@ -30,7 +29,7 @@ void set_volume_multiplier(int16_t knob_value)
         knob_value = 0;
     }
     // Reduce ADC resolution to 8 bits from the native ADC resolution.
-    volume_multiplier = knob_value >> (ADC_CFG1_RESOLUTION - VOL_N_BITS);
+    volume_multiplier = knob_value >> (KNOB_RES - VOL_RES);
     
 //    uint16_t i = 0;
 //
