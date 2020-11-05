@@ -1,7 +1,7 @@
 #ifndef VOLUME_H
 #define VOLUME_H
 
-#include "knobs/knobs.h" // include knobs here instead of in the .c so everything that includes volume will get the knobs dependencies too. Like KNOBS_MAX
+#include "knobs/knobs.h" // include knobs here instead of in the .c so everything that includes volume will get the knobs dependencies too. Like KNOB_RES
 #include <stdint.h>
 
 // Resolution of volume control in bits.
