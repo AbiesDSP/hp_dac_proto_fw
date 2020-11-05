@@ -89,7 +89,8 @@ int main(void)
     
     uint8_t int_status;
     uint16_t log_dat;
-    uint16_t update_interval = 0;
+    uint16_t update_interval = 0, range = 0, i = 0;
+    int32_t sample = 0;
 //    uint8_t error = 0;
 //    uint8_t rx_status = 0;
 //    uint16_t rx_size = 0, packet_size = 0;
@@ -103,7 +104,7 @@ int main(void)
     rx_spy_start(COMM_DELIM, RX_TRANSFER_SIZE);
     comm_start(comm_main);
     
-    bs_isr_StartEx(bs_done_isr);
+//    bs_isr_StartEx(bs_done_isr);
     i2s_isr_StartEx(i2s_done_isr);
     audio_out_init(config);
     audio_out_start();
@@ -129,6 +130,23 @@ int main(void)
             CyExitCriticalSection(int_status);
             // Send the data over the UART
             comm_send(comm_main, (uint8_t*)&log_dat, sizeof(log_dat));
+        }
+        // Process audio
+        if (audio_out_update_flag) {
+            audio_out_update_flag = 0;
+            range = audio_out_count;
+            i = 0;
+            while (range > 0) {
+                // We know the bottom 8 bits are 0. So we can shift, then multiply.
+                // This saves us from needing to use a 64bit int to hold the multiply result.
+                sample = get_audio_sample_from_bytestream(&audio_out_process[i]);
+                sample = apply_volume_filter_to_sample(sample);
+                return_sample_to_bytestream(sample, &audio_out_process[i]);
+                range -= 3;
+                i += 3;
+            }
+            // Put processed bytes into audio buffer, and send it out.
+            audio_out_transmit();
         }
 
         // New update from adc.

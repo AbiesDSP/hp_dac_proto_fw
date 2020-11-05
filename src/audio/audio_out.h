@@ -1,7 +1,7 @@
 #ifndef AUDIO_OUT_H
 #define AUDIO_OUT_H
 
-#include "CyLib.h"
+#include "usb/usb.h"
 #include "cytypes.h"
 #include <stdint.h>
 
@@ -10,6 +10,7 @@
 #define AUDIO_OUT_TRANSFER_SIZE (288u)
 #define AUDIO_OUT_N_TD          (32u)
 #define AUDIO_OUT_BUF_SIZE      (AUDIO_OUT_N_TD * AUDIO_OUT_TRANSFER_SIZE)
+#define AUDIO_OUT_PROCESS_SIZE  (294u)
 
 #define AUDIO_OUT_LOW_LIMIT     (USB_FB_RANGE)
 #define AUDIO_OUT_HIGH_LIMIT    (AUDIO_OUT_BUF_SIZE - USB_FB_RANGE)
@@ -25,7 +26,9 @@
 #define USB_FB_RANGE            (AUDIO_OUT_TRANSFER_SIZE)
 
 extern uint8_t audio_out_buf[AUDIO_OUT_BUF_SIZE];
-extern volatile uint16_t audio_out_shadow;
+extern uint8_t audio_out_process[AUDIO_OUT_PROCESS_SIZE];
+extern uint16_t audio_out_count;
+
 extern volatile uint16_t audio_out_buffer_size;
 extern volatile uint8_t audio_out_active;
 extern volatile uint8_t audio_out_status;
@@ -48,6 +51,9 @@ void audio_out_init(audio_out_config config);
 void audio_out_start(void);
 // Gets called on audio out ep isr. Put in cyapicallbacks.h
 void audio_out_update(void);
+// Send processed data to bs component.
+void audio_out_transmit(void);
+
 // Start and stop audio playback and I2S.
 void audio_out_enable(void);
 void audio_out_disable(void);

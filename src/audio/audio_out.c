@@ -13,13 +13,13 @@
 #define N_BS_TD             ((AUDIO_OUT_BUF_SIZE + (MAX_TRANSFER_SIZE - 1))/MAX_TRANSFER_SIZE)
 
 uint8_t audio_out_buf[AUDIO_OUT_BUF_SIZE];
+uint8_t audio_out_process[AUDIO_OUT_PROCESS_SIZE];
+uint16_t audio_out_count = 0;
 /* Write and read ptrs are for processing. It won't affect USB/I2S unless you write outside.
  * the buffers for processing. When data is written, the write pointer increments, then when
  * it's processed, the read pointer should increment. Shadow is bytes that haven't transferred yet.
  * 
  */
-volatile uint16_t audio_out_read_ptr;
-volatile uint16_t audio_out_shadow;
 volatile uint16_t audio_out_buffer_size;
 volatile uint8_t audio_out_status;
 volatile uint8_t audio_out_active;
@@ -70,9 +70,13 @@ void audio_out_init(audio_out_config config)
     for (i = 0; i < AUDIO_OUT_BUF_SIZE; i++) {
         audio_out_buf[i] = 0;
     }
+
+    for (i = 0; i < USB_MAX_BUF_SIZE; i++) {
+        audio_out_process[i] = 0;
+    }
+
     // Initialize buffer management.
-    audio_out_read_ptr = 0;
-    audio_out_shadow = 0;
+    audio_out_count = 0;
     audio_out_buffer_size = 0;
     audio_out_status = 0;
     audio_out_active = 0;
@@ -93,37 +97,31 @@ void audio_out_start(void)
 
 void audio_out_update(void)
 {
-    uint8_t int_status;
-    uint16_t count, buf_size, range, i;
-    int32_t sample;
-    // We've received bytes from USB. We need to transfer to byte_swap.
-    // Reset here for any reason?
+    // We've received bytes from USB. We need to process the data, then retransmit it.
+    // Copy to the processing buf, then set the update flag.
+    audio_out_count = USBFS_GetEPCount(AUDIO_OUT_EP);
+    memcpy(audio_out_process, usb_out_buf, audio_out_count);
+    audio_out_update_flag = 1;
+}
 
+void audio_out_transmit(void)
+{
+    uint8_t int_status = 0;
+    uint16_t buf_size = 0;
+    
     if (audio_out_status & AUDIO_OUT_STS_RESET) {
         audio_out_status &= ~AUDIO_OUT_STS_RESET;
         audio_out_buffer_size = 0;
     }
 
-    count = USBFS_GetEPCount(AUDIO_OUT_EP);
-    range = count;
-    i = 0;
-    while (range > 0) {
-        // We know the bottom 8 bits are 0. So we can shift, then multiply.
-        // This saves us from needing to use a 64bit int to hold the multiply result.
-        sample = get_audio_sample_from_bytestream(&usb_out_buf[i]);
-        sample = apply_volume_filter_to_sample(sample);
-        return_sample_to_bytestream(sample, &usb_out_buf[i]);
-        range -= 3;
-        i += 3;
-    }
     // Start a dma transaction
-    CyDmaTdSetConfiguration(usb_dma_td[0], count, CY_DMA_DISABLE_TD, (TD_INC_SRC_ADR | usb_dma_termout_en));
-    CyDmaTdSetAddress(usb_dma_td[0], LO16((uint32_t)&usb_buf[0]), LO16((uint32_t)bs_fifo_in));
+    CyDmaTdSetConfiguration(usb_dma_td[0], audio_out_count, CY_DMA_DISABLE_TD, (TD_INC_SRC_ADR | usb_dma_termout_en));
+    CyDmaTdSetAddress(usb_dma_td[0], LO16((uint32_t)&audio_out_process[0]), LO16((uint32_t)bs_fifo_in));
     CyDmaChSetInitialTd(usb_dma_ch, usb_dma_td[0]);
     CyDmaChEnable(usb_dma_ch, 1u);
     
     int_status = CyEnterCriticalSection();
-    audio_out_buffer_size += count;
+    audio_out_buffer_size += audio_out_count;
     buf_size = audio_out_buffer_size;
     CyExitCriticalSection(int_status);
 
@@ -131,8 +129,6 @@ void audio_out_update(void)
     if ((audio_out_status & AUDIO_OUT_STS_ACTIVE) == 0u && buf_size >= AUDIO_OUT_ACTIVE_LIMIT) {
         audio_out_enable();
     }
-    // Bytes needing processing
-    audio_out_shadow += count;
 }
 
 void audio_out_enable(void)
@@ -192,7 +188,7 @@ static void i2s_dma_config(void)
 // Byte swap transfer completed. Ready for processing.
 CY_ISR_PROTO(bs_done_isr)
 {
-    audio_out_update_flag = 1;
+    // audio_out_update_flag = 1;
 }
 
 // This isr is when the I2S transfer completes.

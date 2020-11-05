@@ -16,7 +16,7 @@ volatile uint8_t fb_data[3] = {0x00, 0x00, 0x0C};
 volatile uint8_t fb_updated = 0;
 uint32_t sample_rate_feedback = 0;
 
-uint8_t usb_out_buf[USB_BUF_SIZE];
+uint8_t usb_out_buf[USB_MAX_BUF_SIZE];
 
 uint8_t usb_status = 0;
 uint8_t usb_alt_setting[USB_NO_STREAM_IFACE] = {0xFF, 0xFF};
@@ -70,7 +70,7 @@ void usb_service(void)
     if (usb_status == USB_STS_INIT) {
         usb_status = USB_STS_ENUM;
         // Initialize buffers.
-        for (i = 0; i < USB_BUF_SIZE; i++) {
+        for (i = 0; i < USB_MAX_BUF_SIZE; i++) {
             usb_out_buf[i] = 0u;
         }
     }
@@ -82,7 +82,7 @@ void usb_service(void)
             I2S_Stop();
             I2S_Start();
             if (usb_alt_setting[USB_OUT_IFACE_INDEX] != USB_ALT_ZEROBW) {
-                USBFS_ReadOutEP(AUDIO_OUT_EP, &usb_out_buf[0], USB_BUF_SIZE);
+                USBFS_ReadOutEP(AUDIO_OUT_EP, &usb_out_buf[0], USB_MAX_BUF_SIZE);
                 USBFS_EnableOutEP(AUDIO_OUT_EP);
                 USBFS_LoadInEP(AUDIO_FB_EP, (const uint8_t*)fb_data, 3);
                 USBFS_LoadInEP(AUDIO_FB_EP, USBFS_NULL, 3);

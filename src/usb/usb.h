@@ -8,7 +8,7 @@
 #define AUDIO_OUT_EP        (1u)
 #define AUDIO_IN_EP         (2u)
 #define AUDIO_FB_EP         (3u)
-#define USB_BUF_SIZE        (294u)
+#define USB_MAX_BUF_SIZE        (294u)
 
 #define USB_STS_INACTIVE    (0x00u)
 #define USB_STS_INIT        (0x01u)
@@ -22,7 +22,7 @@
 #define USB_ALT_ACTIVE_16   (1u)
 #define USB_ALT_INVALID     (0xFF)
 
-extern uint8_t usb_out_buf[USB_BUF_SIZE];
+extern uint8_t usb_out_buf[USB_MAX_BUF_SIZE];
 extern volatile uint8_t fb_data[3];
 extern volatile uint8_t fb_updated;
 extern uint32_t sample_rate_feedback;
