@@ -5,24 +5,21 @@
 #include "USBFS.h"
 #include "I2S.h"
 #include "mute.h"
+#include "volume/volume.h"
+#include "pre_post_processing/samplemanagement.h"
 
 #define MAX_TRANSFER_SIZE   (4095u)
 #define FIFO_HALF_FULL_MASK (0x0C)
 #define N_BS_TD             ((AUDIO_OUT_BUF_SIZE + (MAX_TRANSFER_SIZE - 1))/MAX_TRANSFER_SIZE)
 
+volatile uint8_t audio_out_update_flag;
+uint8_t audio_out_process[AUDIO_OUT_PROCESS_SIZE];
+uint16_t audio_out_count = 0;
+
 uint8_t audio_out_buf[AUDIO_OUT_BUF_SIZE];
-/* Write and read ptrs are for processing. It won't affect USB/I2S unless you write outside.
- * the buffers for processing. When data is written, the write pointer increments, then when
- * it's processed, the read pointer should increment. Shadow is bytes that haven't transferred yet.
- * 
- */
-volatile uint16_t audio_out_read_ptr;
-volatile uint16_t audio_out_shadow;
 volatile uint16_t audio_out_buffer_size;
 volatile uint8_t audio_out_status;
 volatile uint8_t audio_out_active;
-
-volatile uint8_t audio_out_update_flag;
 
 static uint8_t usb_dma_td[1];
 static uint8_t bs_dma_td[N_BS_TD];
@@ -34,7 +31,6 @@ static uint8_t bs_dma_ch;
 static uint8_t bs_dma_termout_en;
 static uint8_t i2s_dma_ch;
 static uint8_t i2s_dma_termout_en;
-static uint8_t *usb_buf;
 static reg8 *bs_fifo_in;
 static reg8 *bs_fifo_out;
 
@@ -51,7 +47,6 @@ void audio_out_init(audio_out_config config)
     bs_dma_termout_en = config.bs_dma_termout_en;
     i2s_dma_ch = config.i2s_dma_ch;
     i2s_dma_termout_en = config.i2s_dma_termout_en;
-    usb_buf = config.usb_buf;
     bs_fifo_in = config.bs_fifo_in;
     bs_fifo_out = config.bs_fifo_out;
 
@@ -68,9 +63,13 @@ void audio_out_init(audio_out_config config)
     for (i = 0; i < AUDIO_OUT_BUF_SIZE; i++) {
         audio_out_buf[i] = 0;
     }
+
+    for (i = 0; i < USB_MAX_BUF_SIZE; i++) {
+        audio_out_process[i] = 0;
+    }
+
     // Initialize buffer management.
-    audio_out_read_ptr = 0;
-    audio_out_shadow = 0;
+    audio_out_count = 0;
     audio_out_buffer_size = 0;
     audio_out_status = 0;
     audio_out_active = 0;
@@ -91,25 +90,30 @@ void audio_out_start(void)
 
 void audio_out_update(void)
 {
-    uint8_t int_status;
-    uint16_t count, buf_size;
-    // We've received bytes from USB. We need to transfer to byte_swap.
-    // Reset here for any reason?
+    // We've received bytes from USB. We need to process the data, then retransmit it.
+    // Copy to the processing buf, then set the update flag.
+    audio_out_count = USBFS_GetEPCount(AUDIO_OUT_EP);
+    audio_out_update_flag = 1;
+}
 
+void audio_out_transmit(void)
+{
+    uint8_t int_status = 0;
+    uint16_t buf_size = 0;
+    
     if (audio_out_status & AUDIO_OUT_STS_RESET) {
         audio_out_status &= ~AUDIO_OUT_STS_RESET;
         audio_out_buffer_size = 0;
     }
 
-    count = USBFS_GetEPCount(AUDIO_OUT_EP);
     // Start a dma transaction
-    CyDmaTdSetConfiguration(usb_dma_td[0], count, CY_DMA_DISABLE_TD, (TD_INC_SRC_ADR | usb_dma_termout_en));
-    CyDmaTdSetAddress(usb_dma_td[0], LO16((uint32_t)&usb_buf[0]), LO16((uint32_t)bs_fifo_in));
+    CyDmaTdSetConfiguration(usb_dma_td[0], audio_out_count, CY_DMA_DISABLE_TD, (TD_INC_SRC_ADR | usb_dma_termout_en));
+    CyDmaTdSetAddress(usb_dma_td[0], LO16((uint32_t)&audio_out_process[0]), LO16((uint32_t)bs_fifo_in));
     CyDmaChSetInitialTd(usb_dma_ch, usb_dma_td[0]);
     CyDmaChEnable(usb_dma_ch, 1u);
     
     int_status = CyEnterCriticalSection();
-    audio_out_buffer_size += count;
+    audio_out_buffer_size += audio_out_count;
     buf_size = audio_out_buffer_size;
     CyExitCriticalSection(int_status);
 
@@ -117,8 +121,6 @@ void audio_out_update(void)
     if ((audio_out_status & AUDIO_OUT_STS_ACTIVE) == 0u && buf_size >= AUDIO_OUT_ACTIVE_LIMIT) {
         audio_out_enable();
     }
-    // Bytes needing processing
-    audio_out_shadow += count;
 }
 
 void audio_out_enable(void)
@@ -175,13 +177,16 @@ static void i2s_dma_config(void)
     CyDmaChSetInitialTd(i2s_dma_ch, i2s_dma_td[0]);
 }
 
-// Byte swap transfer completed. Ready for processing.
+// Byte swap transfer completed. Not quite working...
 CY_ISR_PROTO(bs_done_isr)
 {
-    audio_out_update_flag = 1;
+
 }
 
-// This isr is when the I2S transfer completes.
+/* This isr is when each I2S transfer completes. This will happen
+ * in regular increments of AUDIO_OUT_TRANSFER_SIZE. So we can
+ * decrease the buffer size by that much.
+ */
 CY_ISR(i2s_done_isr)
 {
     audio_out_buffer_size -= AUDIO_OUT_TRANSFER_SIZE;

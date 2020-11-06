@@ -1,11 +1,14 @@
 #include "knobs/knobs.h"
 #include "project.h"
 
-volatile uint16_t knobs[N_KNOBS];
+volatile int16_t knobs[N_KNOBS];
 volatile uint8_t knob_status;
 static uint8_t adc_dma_ch;
 static uint8_t adc_dma_td[1];
 static volatile uint8_t adc_ch;
+
+// ISR for ADC eoc.
+CY_ISR_PROTO(adcdone);
 
 void knobs_start(void)
 {

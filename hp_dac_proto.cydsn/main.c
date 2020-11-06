@@ -52,7 +52,6 @@ int main(void)
         .bs_dma_termout_en = DMA_BS__TD_TERMOUT_EN,
         .i2s_dma_ch = i2s_dma_ch,
         .i2s_dma_termout_en = DMA_I2S__TD_TERMOUT_EN,
-        .usb_buf = usb_out_buf,
         .bs_fifo_in = byte_swap_fifo_in_ptr,
         .bs_fifo_out = byte_swap_fifo_out_ptr
     };
@@ -89,9 +88,8 @@ int main(void)
     
     uint8_t int_status;
     uint16_t log_dat;
-    uint16_t read_ptr = 0;
-    int32_t unprocessed_sample;
-    int32_t processed_sample;
+    uint16_t update_interval = 0, range = 0, i = 0;
+    int32_t sample = 0;
 //    uint8_t error = 0;
 //    uint8_t rx_status = 0;
 //    uint16_t rx_size = 0, packet_size = 0;
@@ -105,7 +103,7 @@ int main(void)
     rx_spy_start(COMM_DELIM, RX_TRANSFER_SIZE);
     comm_start(comm_main);
     
-    bs_isr_StartEx(bs_done_isr);
+//    bs_isr_StartEx(bs_done_isr);
     i2s_isr_StartEx(i2s_done_isr);
     audio_out_init(config);
     audio_out_start();
@@ -113,7 +111,8 @@ int main(void)
     boot_isr_StartEx(bootload_isr);
 
 //    sync_init();
-    usb_start();
+    // USB audio will put incoming data into the audio processing buffer.
+    usb_start(audio_out_process, AUDIO_OUT_PROCESS_SIZE);
     
     for ever
     {
@@ -127,51 +126,40 @@ int main(void)
             // Audio out buffer size is modified in an isr,
             // so we'll just grab a quick copy
             int_status = CyEnterCriticalSection();
-            log_dat = audio_out_buffer_size;
+            log_dat = volume_multiplier;
             CyExitCriticalSection(int_status);
             // Send the data over the UART
             comm_send(comm_main, (uint8_t*)&log_dat, sizeof(log_dat));
         }
-        /* Byte swap transfer finished. Ready to process data.
-         * audio_out_shadow is how many bytes need processing.
-         * When you remove data update the read ptr and shadow
-         * to account for processed bytes.
-         * Whatever operation you perform must finish processing the data
-         * within 1ms or we'll have an overrun issue.
-         */
+        // Process audio
         if (audio_out_update_flag) {
             audio_out_update_flag = 0;
-            //loop through each audio sample and pull it out into 32 bit signed int for processing
-            for (uint16_t i = 0; i < (audio_out_shadow / 3); i++) {
-                
-                int_status = CyEnterCriticalSection();
-                // Convert bytes into signed integer.
-                unprocessed_sample = get_audio_sample_from_bytestream(&audio_out_buf[read_ptr]);
-                CyExitCriticalSection(int_status);
-                // Proccess sample as desired
-         
-                // As a last step, set the sample volume right before putting it back in the buffer
-                int_status = CyEnterCriticalSection();
-                processed_sample = apply_volume_filter_to_sample(unprocessed_sample);
-                CyExitCriticalSection(int_status);
-                // Unpack modified sample into the buffer.
-                int_status = CyEnterCriticalSection();
-                return_sample_to_bytestream(processed_sample, &audio_out_buf[read_ptr]);
-                CyExitCriticalSection(int_status);
-                
-                // Update read pointer
-                read_ptr += N_BYTES;
-                read_ptr = read_ptr == AUDIO_OUT_BUF_SIZE ? 0u : read_ptr;
+            int_status = CyEnterCriticalSection();
+            range = audio_out_count;
+            CyExitCriticalSection(int_status);
+            
+            i = 0;
+            while (range > 0) {
+                sample = get_audio_sample_from_bytestream(&audio_out_process[i]);
+                sample = apply_volume_filter_to_sample(sample);
+                return_sample_to_bytestream(sample, &audio_out_process[i]);
+                range -= 3;
+                i += 3;
             }
-            audio_out_shadow = 0;
+            // Put processed bytes into byte swap dma transfer and send it out.
+            audio_out_transmit();
         }
+
         // New update from adc.
         if (knob_status & KNOB_STS_NEW) {
             knob_status &= ~KNOB_STS_NEW;
-            int_status = CyEnterCriticalSection();
             //set the volume multiplier based on the new knob value
-            set_volume_multiplier();
-            CyExitCriticalSection(int_status);
+            // Don't update too frequently.
+            if (update_interval++ == 42) {
+                update_interval = 0;
+                // Use log knob for vol
+                set_volume_multiplier(knobs[0]);
+            }
         }
     }
 }
