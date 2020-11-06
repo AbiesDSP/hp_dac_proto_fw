@@ -1,8 +1,15 @@
+## KiCad Project
+https://github.com/AbiesDSP/headphone_dac_proto
+
 # Installation Instructions
 
-## Dependencies
+## Required Dependencies for Building the Project
 [PSoC Creator](https://www.cypress.com/products/psoc-creator-integrated-design-environment-ide)
 
+Just clone and build in PSoC Creator! You can do all development in PSoC Creator if you like.
+If you wish to contribute to this project, please consider writing tests for your code using Ceedling.
+
+## Required Dependencies for Contributing
 [WSL](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
 
 [Ceedling](https://github.com/ThrowTheSwitch/Ceedling)
