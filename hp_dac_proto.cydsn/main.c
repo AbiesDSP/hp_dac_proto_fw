@@ -4,6 +4,8 @@
 #include "sync/sync.h"
 #include "comm/comm.h"
 #include "knobs/knobs.h"
+#include "pre_post_processing/samplemanagement.h"
+#include "volume/volume.h"
 
 #define ENABLE_BOOTLOAD (0u)
 
@@ -33,6 +35,9 @@ int main(void)
     // Set up analog inputs
     knobs_start();
     
+    // Set up volume control
+    volume_start();
+    
     // DMA Channels for audio out process.
     uint8_t usb_dma_ch, bs_dma_ch, i2s_dma_ch;
     usb_dma_ch = DMA_USB_DmaInitialize(1u, 1u, HI16(CYDEV_SRAM_BASE), HI16(CYDEV_PERIPH_BASE));
@@ -47,7 +52,6 @@ int main(void)
         .bs_dma_termout_en = DMA_BS__TD_TERMOUT_EN,
         .i2s_dma_ch = i2s_dma_ch,
         .i2s_dma_termout_en = DMA_I2S__TD_TERMOUT_EN,
-        .usb_buf = usb_out_buf,
         .bs_fifo_in = byte_swap_fifo_in_ptr,
         .bs_fifo_out = byte_swap_fifo_out_ptr
     };
@@ -84,7 +88,8 @@ int main(void)
     
     uint8_t int_status;
     uint16_t log_dat;
-    uint16_t read_ptr = 0;
+    uint16_t update_interval = 0, range = 0, i = 0;
+    int32_t sample = 0;
 //    uint8_t error = 0;
 //    uint8_t rx_status = 0;
 //    uint16_t rx_size = 0, packet_size = 0;
@@ -98,7 +103,7 @@ int main(void)
     rx_spy_start(COMM_DELIM, RX_TRANSFER_SIZE);
     comm_start(comm_main);
     
-    bs_isr_StartEx(bs_done_isr);
+//    bs_isr_StartEx(bs_done_isr);
     i2s_isr_StartEx(i2s_done_isr);
     audio_out_init(config);
     audio_out_start();
@@ -106,7 +111,8 @@ int main(void)
     boot_isr_StartEx(bootload_isr);
 
 //    sync_init();
-    usb_start();
+    // USB audio will put incoming data into the audio processing buffer.
+    usb_start(audio_out_process, AUDIO_OUT_PROCESS_SIZE);
     
     for ever
     {
@@ -120,31 +126,40 @@ int main(void)
             // Audio out buffer size is modified in an isr,
             // so we'll just grab a quick copy
             int_status = CyEnterCriticalSection();
-            log_dat = audio_out_buffer_size;
+            log_dat = volume_multiplier;
             CyExitCriticalSection(int_status);
             // Send the data over the UART
             comm_send(comm_main, (uint8_t*)&log_dat, sizeof(log_dat));
         }
-        /* Byte swap transfer finished. Ready to process data.
-         * audio_out_shadow is how many bytes need processing.
-         * When you remove data update the read ptr and shadow
-         * to account for processed bytes.
-         * Whatever operation you perform must finish processing the data
-         * within 1ms or we'll have an overrun issue.
-         */
+        // Process audio
         if (audio_out_update_flag) {
             audio_out_update_flag = 0;
-            // Like this.
-            read_ptr += audio_out_shadow;
-            if (read_ptr >= AUDIO_OUT_BUF_SIZE) {
-                read_ptr = read_ptr - AUDIO_OUT_BUF_SIZE;
+            int_status = CyEnterCriticalSection();
+            range = audio_out_count;
+            CyExitCriticalSection(int_status);
+            
+            i = 0;
+            while (range > 0) {
+                sample = get_audio_sample_from_bytestream(&audio_out_process[i]);
+                sample = apply_volume_filter_to_sample(sample);
+                return_sample_to_bytestream(sample, &audio_out_process[i]);
+                range -= 3;
+                i += 3;
             }
+            // Put processed bytes into byte swap dma transfer and send it out.
+            audio_out_transmit();
         }
+
         // New update from adc.
         if (knob_status & KNOB_STS_NEW) {
             knob_status &= ~KNOB_STS_NEW;
-            // Do something with adc data?
-            // something = knob[0] * sample?;
+            //set the volume multiplier based on the new knob value
+            // Don't update too frequently.
+            if (update_interval++ == 42) {
+                update_interval = 0;
+                // Use log knob for vol
+                set_volume_multiplier(knobs[0]);
+            }
         }
     }
 }
