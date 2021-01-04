@@ -6,6 +6,7 @@
 #include "knobs/knobs.h"
 #include "pre_post_processing/samplemanagement.h"
 #include "volume/volume.h"
+#include "filters/filters.h"
 
 #define ENABLE_BOOTLOAD (0u)
 
@@ -37,6 +38,9 @@ int main(void)
     
     // Set up volume control
     volume_start();
+    
+    // Set up filtering
+    filters_start();
     
     // DMA Channels for audio out process.
     uint8_t usb_dma_ch, bs_dma_ch, i2s_dma_ch;
@@ -90,6 +94,7 @@ int main(void)
     uint16_t log_dat;
     uint16_t update_interval = 0, range = 0, i = 0;
     int32_t sample = 0;
+    int32_t prev_sample = 0;
 //    uint8_t error = 0;
 //    uint8_t rx_status = 0;
 //    uint16_t rx_size = 0, packet_size = 0;
@@ -140,8 +145,20 @@ int main(void)
             
             i = 0;
             while (range > 0) {
+                //grab the next sample
                 sample = get_audio_sample_from_bytestream(&audio_out_process[i]);
+                
+                //apply filtering
+
+                //First Order Low Pass Filter based on knob[1] value.
+                //1 = no filter (infinite cutoff frequency)
+                sample = apply_lpf_to_sample(sample, prev_sample);
+                //IIR filter, so we need to track this output for the next filter
+                prev_sample = sample;
+
+                //apply volume
                 sample = apply_volume_filter_to_sample(sample);
+                //return the processed sample
                 return_sample_to_bytestream(sample, &audio_out_process[i]);
                 range -= 3;
                 i += 3;
@@ -159,6 +176,7 @@ int main(void)
                 update_interval = 0;
                 // Use log knob for vol
                 set_volume_multiplier(knobs[0]);
+                set_LPFilt_coef_multiplier(knobs[1]);
             }
         }
     }
